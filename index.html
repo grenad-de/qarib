@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QARIB - قريب</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Cairo,Inter,system-ui,sans-serif;background:#f3f4f6;color:#1f2937;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid #3b82f6;outline-offset:1px}
+.app{max-width:448px;height:100vh;height:100dvh;margin:0 auto;background:#fff;display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+header{background:#1e3a8a;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px;letter-spacing:.04em}
+.dot{width:32px;height:32px;border-radius:50%;background:#3b82f6;display:flex;align-items:center;justify-content:center;font-size:18px}
+.hbs{display:flex;gap:8px}
+.hb{background:#1d4ed8;color:#fff;border:1px solid #60a5fa;border-radius:999px;padding:4px 10px;font-size:12px}
+.demo{background:#fffbeb;color:#92400e;border-bottom:1px solid #fde68a;font-size:11px;padding:6px 12px}
+main{flex:1;position:relative;overflow:hidden}
+.view{display:none;position:absolute;inset:0;overflow:auto;padding:16px}
+.view.on{display:block}
+#v-map{padding:0}
+#map{height:100%;width:100%;z-index:1;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:13px;text-align:center}
+.ov{position:absolute;top:12px;left:12px;right:12px;z-index:800}
+.sr{background:rgba(255,255,255,.93);border-radius:16px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px}
+.sr input{border:0;background:transparent;outline:0;flex:1;font:inherit;font-size:14px;margin:0;padding:0}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-top:8px;padding-bottom:2px;scrollbar-width:none}
+.chip{white-space:nowrap;border:1px solid #e5e7eb;background:rgba(255,255,255,.95);color:#374151;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600}
+.chip.on{background:#1e3a8a;border-color:#1e3a8a;color:#fff}
+#picker{position:absolute;top:0;left:0;right:0;z-index:900;background:#1e3a8a;color:#fff;padding:10px 12px;font-size:12px}
+#picker .r{display:flex;gap:8px;margin-top:8px}
+h2{font-size:18px;margin:0 0 8px}
+label{display:block;font-size:12px;font-weight:700;margin:12px 0 4px}
+input,select,textarea{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:10px;font:inherit;font-size:14px;background:#fff;color:inherit}
+.chk{display:flex;gap:8px;align-items:flex-start;font-weight:400;margin-top:14px}
+.chk input{width:20px;height:20px;padding:0;flex:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{background:#2563eb;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:700;width:100%}
+.btn.sm{padding:6px 12px;font-size:12px;width:auto;border-radius:10px}
+.btn.sec{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.btn.red{background:#dc2626}.btn.green{background:#16a34a}
+.btn:disabled{opacity:.5}
+.warn{font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px;margin-bottom:8px}
+.info{font-size:11px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-top:14px}
+.box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin-top:12px}
+.box .r{display:flex;gap:8px;margin:6px 0}
+.box .r .btn{font-size:12px;padding:8px}
+.st{font-size:11px;color:#4b5563;text-align:center;margin:6px 0 0}
+.err{color:#dc2626;font-size:12px;min-height:1.4em;margin:8px 0}
+.card{background:#fff;border:1px solid #eee;border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-top:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.card h3{margin:4px 0;font-size:14px;overflow-wrap:anywhere}
+.card p{margin:2px 0;font-size:12px;color:#6b7280;overflow-wrap:anywhere}
+.rt{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:none}
+.pr{color:#1d4ed8;font-weight:800;font-size:14px}
+.badge{display:inline-block;background:#eff6ff;color:#1d4ed8;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-inline-end:4px}
+.badge.demo{background:#fef3c7;color:#92400e}
+.empty{text-align:center;font-size:12px;color:#6b7280;padding:24px 0}
+#v-chat{padding:0}
+#v-chat.on{display:flex;flex-direction:column;background:#f3f4f6}
+.chead{background:#fff;padding:12px 16px;border-bottom:1px solid #e5e7eb}
+.chead b{font-size:14px}.chead p{margin:2px 0 0;font-size:11px;color:#6b7280}
+#msgs{flex:1;overflow:auto;padding:12px 16px}
+.b{max-width:80%;padding:10px 12px;border-radius:16px;font-size:12px;margin-top:8px;box-shadow:0 1px 2px rgba(0,0,0,.08);background:#fff;overflow-wrap:anywhere}
+.b.me{background:#2563eb;color:#fff;margin-inline-start:auto}
+.cin{display:flex;gap:8px;padding:12px;background:#fff;border-top:1px solid #e5e7eb}
+.cin input{flex:1;font-size:13px}.cin button{width:44px}
+.pf{text-align:center;margin:12px 0}
+.av{width:80px;height:80px;border-radius:50%;background:#1e3a8a;color:#fff;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.rw{display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-bottom:1px solid #f0f0f0}
+.rw:last-child{border:0}
+nav{display:flex;justify-content:space-around;align-items:center;border-top:1px solid #e5e7eb;padding:8px 4px;background:#fff}
+.nb{background:none;border:0;color:#9ca3af;display:flex;flex-direction:column;align-items:center;font-size:10px;gap:2px;padding:4px 8px}
+nb i{font-size:18px}.nb.on{color:#2563eb;font-weight:700}
+.plus{background:#2563eb;color:#fff;border:0;width:48px;height:48px;border-radius:50%;margin-top:-20px;font-size:20px;box-shadow:0 4px 10px rgba(37,99,235,.4)}
+.custom-pin{background:#1e3a8a;color:#fff;padding:4px 8px;border-radius:12px;font-weight:700;font-size:11px;box-shadow:0 4px 10px rgba(0,0,0,.25);border:2px solid #fff;white-space:nowrap;text-align:center}
+.off{background:#fee2e2;color:#991b1b;font-size:12px;padding:6px 12px;text-align:center}.off.ok{background:#dcfce7;color:#166534}
+.badge.urg{background:#fee2e2;color:#991b1b}
+.urgpin{background:#dc2626}
+#modal{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+.mb{background:#fff;border-radius:16px;padding:16px;width:100%}.r2{display:flex;gap:8px;margin-top:10px}
+.pop{min-width:150px}.pop p{font-size:12px;color:#4b5563;margin:4px 0 8px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><span class="dot">ق</span>QARIB</div>
+    <div class="hbs">
+      <button class="hb" id="lang-btn" type="button">Français</button>
+      <button class="hb" id="gps-top" type="button"><i class="fa-solid fa-location-crosshairs"></i> <span data-i="gps_btn"></span></button>
+    </div>
+  </header>
+  <div class="demo" data-i="banner"></div>
+  <div class="off" id="off" role="status" hidden></div>
+
+  <main>
+    <section class="view on" id="v-map">
+      <div id="map"></div>
+      <div class="ov">
+        <div class="sr"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="search" type="search" maxlength="60" data-p="search"></div>
+        <div class="chips" id="chips">
+          <button class="chip on" type="button" data-cat="all" data-i="cat_all"></button>
+          <button class="chip" type="button" data-cat="moving" data-i="cat_moving"></button>
+          <button class="chip" type="button" data-cat="repair" data-i="cat_repair"></button>
+          <button class="chip" type="button" data-cat="delivery" data-i="cat_delivery"></button>
+          <button class="chip" type="button" data-cat="tidy" data-i="cat_tidy"></button>
+          <button class="chip" type="button" data-cat="other" data-i="cat_other"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-list">
+      <h2 data-i="title_list"></h2>
+      <p class="warn" data-i="list_note"></p>
+      <div class="grid">
+        <div><label for="s-sort" data-i="lbl_sort"></label><select id="s-sort"><option value="new" data-i="sort_new"></option><option value="price" data-i="sort_price"></option><option value="near" data-i="sort_near"></option></select></div>
+        <div><label for="s-dist" data-i="lbl_dist"></label><select id="s-dist"><option value="0" data-i="dist_all"></option><option value="1" data-i="d1"></option><option value="2" data-i="d2"></option><option value="5" data-i="d5"></option><option value="10" data-i="d10"></option></select></div>
+      </div>
+      <p class="st" id="dist-note" style="text-align:start"></p>
+      <label class="chk"><input id="s-closed" type="checkbox"><span data-i="show_closed"></span></label>
+      <div id="list-box"></div>
+    </section>
+
+    <section class="view" id="v-create">
+      <h2 data-i="title_create"></h2>
+      <p class="warn" data-i="privacy"></p>
+      <form id="form" novalidate>
+        <label for="f-title" data-i="lbl_title"></label>
+        <input id="f-title" type="text" maxlength="80" required data-p="ph_title">
+        <label for="f-cat" data-i="lbl_cat"></label>
+        <select id="f-cat"><option value="moving" data-i="cat_moving_f"></option><option value="repair" data-i="cat_repair_f"></option><option value="delivery" data-i="cat_delivery_f"></option><option value="tidy" data-i="cat_tidy_f"></option><option value="other" data-i="cat_other_f"></option></select>
+        <div class="grid">
+          <div><label for="f-price" data-i="lbl_price"></label><input id="f-price" type="number" min="0" max="1000000" inputmode="numeric" required placeholder="100"></div>
+          <div><label for="f-time" data-i="lbl_time"></label><input id="f-time" type="text" maxlength="40" data-p="ph_time"></div>
+        </div>
+        <label for="f-urg" data-i="lbl_urg"></label>
+        <select id="f-urg"><option value="flexible" data-i="urg_flexible"></option><option value="today" data-i="urg_today"></option><option value="urgent" data-i="urg_urgent"></option></select>
+        <p class="st" data-i="price_note" style="text-align:start"></p>
+        <label for="f-desc" data-i="lbl_desc"></label>
+ <textarea id="f-desc" rows="3" maxlength="500" data-p="ph_desc"></textarea>
+        <div class="box">
+          <b style="font-size:12px" data-i="lbl_loc"></b>
+          <div class="r">
+            <button class="btn sec" type="button" id="b-gps"><i class="fa-solid fa-location-crosshairs"></i> <span data-i="btn_gps"></span></button>
+            <button class="btn" type="button" id="b-pick"><i class="fa-solid fa-map-pin"></i> <span data-i="btn_pick"></span></button>
+          </div>
+          <select id="f-city" style="margin-top:8px"><option value="" data-i="city_ph"></option></select>
+          <p class="st" id="loc-t" role="status"></p>
+          <button class="btn sec sm" type="button" id="loc-undo" data-i="btn_undo" hidden style="margin-top:8px"></button>
+        </div>
+        <label class="chk"><input id="adult" type="checkbox"><span data-i="adult"></span></label>
+        <p class="err" id="err" role="alert"></p>
+        <button class="btn" type="submit" data-i="btn_submit"></button>
+      </form>
+    </section>
+
+    <section class="view" id="v-chat">
+      <div class="chead"><b data-i="chat_t"></b><p data-i="chat_s"></p><p id="about"></p><button class="btn sec sm" type="button" id="chat-rep" data-i="btn_report" style="margin-top:6px"></button></div>
+      <div id="msgs"></div>
+      <div class="cin"><input id="chat-in" type="text" maxlength="300" data-p="chat_ph"><button class="btn" type="button" id="send"><i class="fa-solid fa-paper-plane"></i></button></div>
+    </section>
+
+    <section class="view" id="v-profile">
+      <div class="pf"><div class="av">؟</div><h2 style="margin-top:8px" data-i="prof_name"></h2><p class="badge demo" data-i="prof_unv"></p></div>
+      <div class="box" style="margin-top:0">
+        <div class="rw"><span data-i="prof_rating"></span><b data-i="prof_none"></b></div>
+        <div class="rw"><span data-i="prof_phone"></span><b data-i="prof_unreg"></b></div>
+        <div class="rw"><span data-i="cnt"></span><b id="cnt-v">0</b></div>
+        <div class="rw"><span data-i="stor"></span><b id="stor-v"></b></div>
+      </div>
+      <p class="info" data-i="prof_note"></p>
+      <button class="btn sec" type="button" id="clear" style="margin-top:14px" data-i="btn_clear"></button>
+    </section>
+
+    <div id="picker" hidden>
+      <span id="pk-t"></span>
+      <div class="r"><button class="btn green sm" type="button" id="pk-ok" data-i="btn_confirm"></button><button class="btn red sm" type="button" id="pk-no" data-i="btn_cancel"></button></div>
+    </div>
+  </main>
+
+  <div id="modal" role="dialog" aria-modal="true" hidden>
+    <div class="mb"><h2 data-i="report_t"></h2><p class="warn" data-i="report_note"></p>
+      <select id="rp-reason"><option value="inappropriate" data-i="rs_inappropriate"></option><option value="scam" data-i="rs_scam"></option><option value="unsafe" data-i="rs_unsafe"></option><option value="other" data-i="rs_other"></option></select>
+      <p class="st" id="rp-st" role="status"></p>
+      <div class="r2"><button class="btn" type="button" id="rp-ok" data-i="btn_send"></button><button class="btn sec" type="button" id="rp-no" data-i="btn_cancel"></button></div>
+    </div>
+  </div>
+  <nav>
+    <button class="nb on" type="button" data-tab="map"><i class="fa-solid fa-map"></i><span data-i="nav_map"></span></button>
+    <button class="nb" type="button" data-tab="list"><i class="fa-solid fa-list-ul"></i><span data-i="nav_list"></span></button>
+    <button class="plus" type="button" data-tab="create" id="tab-create"><i class="fa-solid fa-plus"></i></button>
+    <button class="nb" type="button" data-tab="chat"><i class="fa-solid fa-comments"></i><span data-i="nav_chat"></span></button>
+    <button class="nb" type="button" data-tab="profile"><i class="fa-solid fa-user"></i><span data-i="nav_profile"></span></button>
+  </nav>
+</div>
+
+<script>
+var T={
+ar:{copy:"نسخ",mark_done:"تمت المساعدة",reopen:"إعادة التفعيل",st_done:"تمت المساعدة",st_expired:"منتهٍ (مرّت 48 ساعة)",show_closed:"إظهار الطلبات المكتملة والمنتهية",d1:"أقل من 1 كم",off_t:"لا يوجد اتصال بالإنترنت: قد لا تظهر الخريطة، وطلباتك المحفوظة على الجهاز ما زالت متاحة.",on_t:"عاد الاتصال بالإنترنت.",lbl_sort:"الترتيب",sort_new:"الافتراضي",sort_price:"الأعلى مقابلًا",sort_near:"الأقرب (يتطلب موقعك)",lbl_dist:"المسافة",dist_all:"أي مسافة",d2:"أقل من 2 كم",d5:"أقل من 5 كم",d10:"أقل من 10 كم",dist_note:"المسافات تقريبية (من موقعك الحالي إلى منطقة الطلب)، وموقعك لا يُحفظ.",km:"كم",share:"مشاركة",share_fail:"تعذّرت المشاركة.",copied:"تم نسخ ملخص الطلب.",share_hdr:"طلب مساعدة عبر QARIB",lbl_urg:"درجة الاستعجال",urg_flexible:"مرن",urg_today:"خلال اليوم",urg_urgent:"عاجل",btn_report:"إبلاغ",report_t:"إبلاغ عن محتوى",report_note:"البلاغ يُحفظ على جهازك فقط ولا يصل إلى أي مشرف حاليًا. سيُربط بنظام مراجعة عند تفعيل Firebase.",rs_inappropriate:"محتوى غير لائق",rs_scam:"احتيال أو طلب دفع مشبوه",rs_unsafe:"طلب لقاء غير آمن",rs_other:"سبب آخر",btn_send:"حفظ البلاغ",report_done:"تم حفظ البلاغ على جهازك فقط.",cat_tidy:"ترتيب ومنزل",cat_tidy_f:"ترتيب ومساعدة في البيت",cat_other:"أخرى",cat_other_f:"أخرى (اشرحها في الوصف)",price_note:"أنت من يحدد المقابل، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع. الاتفاق النهائي يكون بينك وبين الطرف الآخر. اكتب 0 إن كانت المساعدة تطوعية.",city_ph:"— أو اختر مدينة (تقريبي) —",loc_city:"✓ تم اعتماد مركز المدينة كمنطقة تقريبية.",cnt:"طلباتي المحفوظة",stor:"التخزين المحلي",stor_ok:"يعمل",stor_bad:"غير متاح أو ممتلئ",zone:"المنطقة:",zone_approx:"منطقة تقريبية",banner:"نسخة تجريبية: البيانات محفوظة على هذا الجهاز فقط (localStorage). لا حسابات ولا مستخدمون حقيقيون بعد.",gps_btn:"موقعي",search:"ابحث في الطلبات…",cat_all:"الكل",cat_moving:"نقل وأثاث",cat_repair:"صيانة",cat_delivery:"توصيل",cat_moving_f:"نقل وأثاث",cat_repair_f:"إصلاحات وصيانة بسيطة",cat_delivery_f:"توصيل أغراض",nav_map:"الخريطة",nav_list:"الطلبات",nav_chat:"المحادثة",nav_profile:"حسابي",title_list:"الطلبات",list_note:"الطلبات المعلَّمة «مثال» توضيحية وليست حقيقية. طلباتك محفوظة على جهازك فقط ولا يراها أحد. الأسعار يحددها أصحاب الطلبات، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع.",demo_tag:"مثال",empty:"لا توجد طلبات مطابقة.",accept:"فتح محادثة تجريبية",del:"حذف",title_create:"إنشاء طلب مساعدة جديد",privacy:"يُحفظ الموقع بدقة تقريبية (نحو 1 كم) ولا يُعرض كعنوان أو إحداثيات. لا تكتب عنوانًا دقيقًا أو بيانات شخصية. اللقاء الحضوري مخصص للبالغين الموثّقين فقط، والتحقق من الهوية غير مفعّل بعد.",lbl_title:"عنوان الطلب",ph_title:"مثال: نقل أريكة، ترتيب غرفة، إصلاح باب…",lbl_cat:"التصنيف",lbl_price:"المقابل المقترح (DH)",lbl_time:"التوقيت",ph_time:"الآن / اليوم",lbl_desc:"الوصف",ph_desc:"اشرح ما تحتاجه بالضبط…",lbl_loc:"موقع الطلب (تقريبي)",btn_gps:"موقعي الحالي",btn_pick:"اختيار بالنقر",loc_none:"لم يتم اختيار موقع بعد.",loc_ok:"✓ تم اعتماد موقع تقريبي (نحو 1 كم).",btn_undo:"إلغاء اختيار الموقع",adult:"أؤكد أنني بالغ (18 سنة فأكثر).",btn_submit:"حفظ الطلب (على جهازي فقط)",e_title:"اكتب عنوانًا للطلب.",e_price:"أدخل سعرًا صحيحًا.",e_loc:"اختر موقعًا تقريبيًا وأكّدtry{var raw=JSON.parse(localStorage.getItem(KEY)||"[]");reqs=Array.isArray(raw)?raw.map(clean).filter(Boolean):[]}catch(e){reqs=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(reqs));return true}catch(e){return false}}
+save();
+
+function list(){
+  var a=DEMO.map(function(d){return{id:d.id,demo:1,category:d.category,price:d.price,lat:d.lat,lng:d.lng,urgency:d.urgency,title:d.title[lang],time:d.time[lang],desc:d.desc[lang]}}).concat(reqs);
+  a=a.filter(function(r){return(cat==="all"||r.category===cat)&&(!q||(r.title+" "+r.desc).toLowerCase().indexOf(q)>-1)&&(showClosed||state(r)==="open")});
+  a=a.map(function(r){var c=Object.assign({},r);c.km=userPos?km(userPos,r):null;return c});
+  if(maxKm>0&&userPos)a=a.filter(function(r){return r.km!=null&&r.km<=maxKm});
+  if(sortBy==="price")a.sort(function(x,y){return(y.price==null?-1:y.price)-(x.price==null?-1:x.price)});
+  if(sortBy==="near"&&userPos)a.sort(function(x,y){return x.km-y.km});
+  return a;
+}
+function pop(r){
+  var d=h("div","pop");d.appendChild(h("b",null,r.title));d.appendChild(h("p",null,r.desc||""));
+  var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};d.appendChild(b);return d;
+}
+function stat(){
+  var ok=true;
+  try{localStorage.setItem("__q","1");localStorage.removeItem("__q")}catch(e){ok=false}
+  $("cnt-v").textContent=String(reqs.length);$("stor-v").textContent=tr(ok?"stor_ok":"stor_bad");
+}
+function cityOpts(){
+  var sel=$("f-city");while(sel.options.length>1)sel.remove(1);
+  CITIES.forEach(function(c){var o=document.createElement("option");o.value=c.k;o.textContent=c[lang];sel.appendChild(o)});
+  sel.value=loc&&loc.zone?loc.zone:"";
+}
+function render(){
+  stat();
+  var box=$("list-box"),a=list();box.textContent="";
+  if(!a.length)box.appendChild(h("p","empty",tr("empty")));
+  a.forEach(function(r){
+    var c=h("div","card"),l=h("div");
+    l.appendChild(h("span","badge",tr("cat_"+r.category)));
+    if(r.demo)l.appendChild(h("span","badge demo",tr("demo_tag")));
+    if(r.urgency)l.appendChild(h("span","badge"+(r.urgency==="urgent"?" urg":""),tr("urg_"+r.urgency)));
+    var s0=state(r);if(s0!=="open")l.appendChild(h("span","badge demo",tr("st_"+s0)));
+    l.appendChild(h("h3",null,r.title));
+    l.appendChild(h("p",null,r.time||"—"));
+    l.appendChild(h("p",null,tr("zone")+" "+zn(r.zone)+(r.km!=null?" - ~"+r.km.toFixed(1)+" "+tr("km"):"")));
+    if(r.desc)l.appendChild(h("p",null,r.desc));
+    c.appendChild(l);
+    var rt=h("div","rt");rt.appendChild(h("span","pr",pt(r.price)));
+    var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};rt.appendChild(b);
+    var rp=h("button","btn sm sec",tr("btn_report"));rp.type="button";rp.onclick=function(){openReport(r.id)};rt.appendChild(rp);
+    if(!r.demo){var sh=h("button","btn sm sec",tr("share"));sh.type="button";sh.onclick=function(){shareReq(r)};rt.appendChild(sh);var cp=h("button","btn sm sec",tr("copy"));cp.type="button";cp.onclick=function(){copyReq(r)};rt.appendChild(cp);var st=h("button","btn sm sec",tr(s0==="open"?"mark_done":"reopen"));st.type="button";st.onclick=function(){toggleDone(r.id)};rt.appendChild(st)}
+    if(!r.demo){var d=h("button","btn sm sec",tr("del"));d.type="button";d.onclick=function(){reqs=reqs.filter(function(x){return x.id!==r.id});save();render()};rt.appendChild(d)}
+    c.appendChild(rt);box.appendChild(c);
+  });
+  if(layer){
+    layer.clearLayers();
+    a.filter(function(r){return state(r)==="open"}).forEach(function(r){var u=r.urgency==="urgent";L.marker([r.lat,r.lng],{icon:L.divIcon({className:"custom-pin"+(u?" urgpin":""),html:(u?"⚡ ":"")+pt(r.price),iconSize:[u?74:60,25]})}).bindPopup(pop(r)).addTo(layer)});
+  }
+}
+
+function initMap(){
+  try{
+    map=L.map("map",{zoomControl:false}).setView([30.35,-9.54],14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+    map.on("click",function(e){if(picking)setDraft(e.latlng.lat,e.latlng.lng)});
+  }catch(e){map=null;layer=null;$("map").textContent=tr("nomap")}
+}
+function switchTab(n){
+  if(n!=="map"&&picking)closePicker();
+  ["map","list","create","chat","profile"].forEach(function(t){$("v-"+t).classList.toggle("on",t===n)});
+  document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===n)});
+  if(n==="map"&&map)setTimeout(function(){map.invalidateSize()},200);
+}
+
+/* Location picking: draft -> confirm / cancel, and a real undo afterwards */ه أولًا.",e_adult:"يجب تأكيد أنك بالغ.",e_save:"تعذّر الحفظ على الجهاز.",pick_hint:"انقر على الخريطة لاختيار موقع تقريبي.",pick_ready:"الدائرة تمثل منطقة تقريبية (نحو 1 كم). أكّدها أو ألغِها.",btn_confirm:"تأكيد",btn_cancel:"إلغاء",gps_fail:"تعذّر تحديد موقعك. تأكد من تفعيل GPS ومن سماح المتصفح بالوصول إلى الموقع، أو اختر مدينة أو انقر على الخريطة.",gps_none:"هذا المتصفح لا يدعم تحديد الموقع. اختر مدينة من القائمة.",you_here:"موقعك الدقيق الحالي: يظهر لك أنت فقط على هذا الجهاز، ولا يُنشر ولا يُخزَّن.",nomap:"تعذّر تحميل الخريطة. تحقق من الاتصال بالإنترنت.",chat_t:"محادثة تجريبية (محاكاة)",chat_s:"لا يوجد شخص حقيقي هنا. الرسائل لا تغادر هاتفك.",chat_about:"بخصوص:",chat_ph:"اكتب رسالة 
+تجريبية…",chat_re:"هذا رد آلي تجريبي. لا يوجد مستخدم حقيقي في هذه النسخة.",send:"إرسال",prof_name:"مستخدم تجريبي",prof_unv:"غير موثّق: التحقق من الهوية غير مفعّل",prof_rating:"التقييم",prof_none:"لا يوجد بعد",prof_phone:"رقم الهاتف",prof_unreg:"غير مسجّل",prof_note:"ملاحظة تقنية: التخزين محلي على هاتفك فقط عبر localStorage، ولن تظهر الطلبات لأي مستخدم آخر حتى يُربط التطبيق بقاعدة بيانات سحابية ونظام حسابات وتحقق.",btn_clear:"مسح كل بياناتي المحفوظة",clear_q:"حذف كل الطلبات المحفوظة على هذا الجهاز نهائيًا؟"},
+fr:{copy:"Copier",mark_done:"Aide reçue",reopen:"Réactiver",st_done:"Aide reçue",st_expired:"Expirée (48 h écoulées)",show_closed:"Afficher les demandes terminées et expirées",d1:"Moins de 1 km",off_t:"Pas de connexion Internet : la carte peut ne pas s’afficher ; vos demandes enregistrées restent disponibles.",on_t:"Connexion Internet rétablie.",lbl_sort:"Tri",sort_new:"Par défaut",sort_price:"Mieux payé d’abord",sort_near:"Plus proches (position requise)",lbl_dist:"Distance",dist_all:"Toute distance",d2:"Moins de 2 km",d5:"Moins de 5 km",d10:"Moins de 10 km",dist_note:"Distances approximatives (de votre position actuelle à la zone de la demande) ; votre position n’est pas enregistrée.",km:"km",share:"Partager",share_fail:"Partage impossible.",copied:"Résumé de la demande copié.",share_hdr:"Demande d’aide via QARIB",lbl_urg:"Degré d’urgence",urg_flexible:"Flexible",urg_today:"Aujourd’hui",urg_urgent:"Urgent",btn_report:"Signaler",report_t:"Signaler un contenu",report_note:"Le signalement est enregistré uniquement sur votre appareil et n’atteint aucun modérateur pour l’instant. Il sera relié à un système de modération avec Firebase.",rs_inappropriate:"Contenu inapproprié",rs_scam:"Arnaque ou paiement suspect",rs_unsafe:"Rencontre jugée dangereuse",rs_other:"Autre raison",btn_send:"Enregistrer le signalement",report_done:"Signalement enregistré sur votre appareil uniquement.",cat_tidy:"Rangement & maison",cat_tidy_f:"Rangement et aide à la maison",cat_other:"Autre",cat_other_f:"Autre (précisez dans la description)",price_note:"C’est vous qui fixez le prix ; l’application ne fixe aucun prix et ne traite aucun paiement. L’accord final se fait entre vous et l’autre personne. Saisissez 0 si l’aide est bénévole.",city_ph:"— ou choisir une ville (approximatif) —",loc_city:"✓ Centre-ville adopté comme zone approximative.",cnt:"Mes demandes enregistrées",stor:"Stockage local",stor_ok:"Fonctionne",stor_bad:"Indisponible ou plein",zone:"Zone :",zone_approx:"Zone approximative",banner:"Version de test : données enregistrées uniquement sur cet appareil (localStorage). Pas encore de comptes ni d’utilisateurs réels.",gps_btn:"Ma position",search:"Rechercher une demande…",cat_all:"Tous",cat_moving:"Déménagement",cat_repair:"Bricolage",cat_delivery:"Livraison",cat_moving_f:"Déménagement et meubles",cat_repair_f:"Petites réparations et bricolage",cat_delivery_f:"Livraison de courses",nav_map:"Carte",nav_list:"Demandes",nav_chat:"Chat",nav_profile:"Profil",title_list:"Demandes",list_note:"Les demandes marquées « Exemple » sont fictives. Vos demandes restent sur votre appareil et ne sont vues par personne. Les prix sont fixés par les personnes qui demandent ; l’application ne fixe aucun prix et ne traite aucun paiement.",demo_tag:"Exemple",empty:"Aucune demande correspondante.",accept:"Ouvrir un chat de test",del:"Supprimer",title_create:"Créer une demande d’aide",privacy:"La position est enregistrée de façon approximative (environ 1 km) et jamais affichée comme adresse ou coordonnées. N’écrivez ni adresse exacte ni données personnelles. Les rencontres en personne sont réservées aux adultes vérifiés ; la vérification d’identité n’est pas encore active.",lbl_title:"Titre de la demande",ph_title:"Ex. : déplacer un canapé, ranger une pièce, réparer une porte…",lbl_cat:"Catégorie",lbl_price:"Prix proposé (DH)",lbl_time:"Horaire",ph_time:"Maintenant / aujourd’hui",lbl_desc:"Description",ph_desc:"Expliquez précisément ce dont vous avez besoin…",lbl_loc:"Lieu de la demande (approximatif)",btn_gps:"Ma position",btn_pick:"Choisir sur la carte",loc_none:"Aucun lieu choisi pour l’instant.",loc_ok:"✓ Zone approximative confirmée (environ 1 km).",btn_undo:"Annuler le lieu choisi",adult:"Je confirme être majeur(e) (18 ans ou plus).",btn_submit:"Enregistrer (sur 
+mon appareil)",e_title:"Saisissez un titre.",e_price:"Saisissez un prix valide.",e_loc:"Choisissez d’abord une zone approximative et confirmez-la.",e_adult:"Vous devez confirmer être majeur(e).",e_save:"Enregistrement impossible sur l’appareil.",pick_hint:"Touchez la carte pour choisir une zone approximative.",pick_ready:"Le cercle représente une zone approximative (environ 1 km). Confirmez ou annulez.",btn_confirm:"Confirmer",btn_cancel:"Annuler",gps_fail:"Impossible de déterminer votre position. Vérifiez que le GPS est activé et que le navigateur y est autorisé, ou choisissetry{var raw=JSON.parse(localStorage.getItem(KEY)||"[]");reqs=Array.isArray(raw)?raw.map(clean).filter(Boolean):[]}catch(e){reqs=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(reqs));return true}catch(e){return false}}
+save();
+
+function list(){
+  var a=DEMO.map(function(d){return{id:d.id,demo:1,category:d.category,price:d.price,lat:d.lat,lng:d.lng,urgency:d.urgency,title:d.title[lang],time:d.time[lang],desc:d.desc[lang]}}).concat(reqs);
+  a=a.filter(function(r){return(cat==="all"||r.category===cat)&&(!q||(r.title+" "+r.desc).toLowerCase().indexOf(q)>-1)&&(showClosed||state(r)==="open")});
+  a=a.map(function(r){var c=Object.assign({},r);c.km=userPos?km(userPos,r):null;return c});
+  if(maxKm>0&&userPos)a=a.filter(function(r){return r.km!=null&&r.km<=maxKm});
+  if(sortBy==="price")a.sort(function(x,y){return(y.price==null?-1:y.price)-(x.price==null?-1:x.price)});
+  if(sortBy==="near"&&userPos)a.sort(function(x,y){return x.km-y.km});
+  return a;
+}
+function pop(r){
+  var d=h("div","pop");d.appendChild(h("b",null,r.title));d.appendChild(h("p",null,r.desc||""));
+  var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};d.appendChild(b);return d;
+}
+function stat(){
+  var ok=true;
+  try{localStorage.setItem("__q","1");localStorage.removeItem("__q")}catch(e){ok=false}
+  $("cnt-v").textContent=String(reqs.length);$("stor-v").textContent=tr(ok?"stor_ok":"stor_bad");
+}
+function cityOpts(){
+  var sel=$("f-city");while(sel.options.length>1)sel.remove(1);
+  CITIES.forEach(function(c){var o=document.createElement("option");o.value=c.k;o.textContent=c[lang];sel.appendChild(o)});
+  sel.value=loc&&loc.zone?loc.zone:"";
+}
+function render(){
+  stat();
+  var box=$("list-box"),a=list();box.textContent="";
+  if(!a.length)box.appendChild(h("p","empty",tr("empty")));
+  a.forEach(function(r){
+    var c=h("div","card"),l=h("div");
+    l.appendChild(h("span","badge",tr("cat_"+r.category)));
+    if(r.demo)l.appendChild(h("span","badge demo",tr("demo_tag")));
+    if(r.urgency)l.appendChild(h("span","badge"+(r.urgency==="urgent"?" urg":""),tr("urg_"+r.urgency)));
+    var s0=state(r);if(s0!=="open")l.appendChild(h("span","badge demo",tr("st_"+s0)));
+    l.appendChild(h("h3",null,r.title));
+    l.appendChild(h("p",null,r.time||"—"));
+    l.appendChild(h("p",null,tr("zone")+" "+zn(r.zone)+(r.km!=null?" - ~"+r.km.toFixed(1)+" "+tr("km"):"")));
+    if(r.desc)l.appendChild(h("p",null,r.desc));
+    c.appendChild(l);
+    var rt=h("div","rt");rt.appendChild(h("span","pr",pt(r.price)));
+    var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};rt.appendChild(b);
+    var rp=h("button","btn sm sec",tr("btn_report"));rp.type="button";rp.onclick=function(){openReport(r.id)};rt.appendChild(rp);
+    if(!r.demo){var sh=h("button","btn sm sec",tr("share"));sh.type="button";sh.onclick=function(){shareReq(r)};rt.appendChild(sh);var cp=h("button","btn sm sec",tr("copy"));cp.type="button";cp.onclick=function(){copyReq(r)};rt.appendChild(cp);var st=h("button","btn sm sec",tr(s0==="open"?"mark_done":"reopen"));st.type="button";st.onclick=function(){toggleDone(r.id)};rt.appendChild(st)}
+    if(!r.demo){var d=h("button","btn sm sec",tr("del"));d.type="button";d.onclick=function(){reqs=reqs.filter(function(x){return x.id!==r.id});save();render()};rt.appendChild(d)}
+    c.appendChild(rt);box.appendChild(c);
+  });
+  if(layer){
+    layer.clearLayers();
+    a.filter(function(r){return state(r)==="open"}).forEach(function(r){var u=r.urgency==="urgent";L.marker([r.lat,r.lng],{icon:L.divIcon({className:"custom-pin"+(u?" urgpin":""),html:(u?"⚡ ":"")+pt(r.price),iconSize:[u?74:60,25]})}).bindPopup(pop(r)).addTo(layer)});
+  }
+}
+
+function initMap(){
+  try{
+    map=L.map("map",{zoomControl:false}).setView([30.35,-9.54],14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+    map.on("click",function(e){if(picking)setDraft(e.latlng.lat,e.latlng.lng)});
+  }catch(e){map=null;layer=null;$("map").textContent=tr("nomap")}
+}
+function switchTab(n){
+  if(n!=="map"&&picking)closePicker();
+  ["map","list","create","chat","profile"].forEach(function(t){$("v-"+t).classList.toggle("on",t===n)});
+  document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===n)});
+  if(n==="map"&&map)setTimeout(function(){map.invalidateSize()},200);
+}
+z une ville ou touchez la carte.",gps_none:"Ce navigateur ne prend pas en charge la géolocalisation. Choisissez une ville dans la liste.",you_here:"Votre position exacte : visible par vous seul sur cet appareil, jamais publiée ni enregistrée.",nomap:"Impossible de charger la carte. Vérifiez votre connexion Internet.",chat_t:"Chat de test (simulation)",chat_s:"Aucune personne réelle ici. Les messages ne quittent pas votre téléphone.",chat_about:"Concerne :",chat_ph:"Écrivez un message de test…",chat_re:"Réponse automatique de test. Aucun utilisateur réel dans cette version.",send:"Envoyer",prof_name:"Utilisateur de test",prof_unv:"Non vérifié : vérification d’identité inactive",prof_rating:"Évaluation",prof_none:"Aucune pour l’instant",prof_phone:"Téléphone",prof_unreg:"Non renseigné",prof_note:"Note technique : le stockage est local à votre téléphone (localStorage). Les demandes ne seront visibles par aucun autre utilisateur tant que l’application n’est pas reliée à une base de données en ligne, à des comptes et à une vérification.",btn_clear:"Effacer toutes mes données",clear_q:"Supprimer définitivement toutes les demandes enregistrées sur cet appareil ?"}
+};
+var DEMO=[
+{id:-1,urgency:"urgent",category:"moving",price:100,lat:30.35,lng:-9.54,title:{ar:"مساعدة في نقل أريكة كبيرة",fr:"Aide pour déplacer un grand canapé"},time:{ar:"الآن",fr:"Maintenant"},desc:{ar:"مثال توضيحي: أحتاج شخصًا بالغًا لنقل أريكة للطابق الثاني.",fr:"Exemple : j’ai besoin d’un adulte pour monter un canapé au 2e étage."}},
+{id:-2,urgency:"today",category:"repair",price:70,lat:30.36,lng:-9.53,title:{ar:"تركيب رفوف خشبية",fr:"Montage d’étagères en bois"},time:{ar:"اليوم 5 مساءً",fr:"Aujourd’hui 17 h"},desc:{ar:"مثال توضيحي: تركيب 3 رفوف في الصالون، الأدوات متوفرة.",fr:"Exemple : poser 3 étagères au salon, outils fournis."}},
+{id:-3,urgency:"urgent",category:"delivery",price:50,lat:30.34,lng:-9.55,title:{ar:"شراء وتوصيل طلبات",fr:"Courses et livraison"},time:{ar:"خلال ساعة",fr:"Dans l’heure"},desc:{ar:"مثال توضيحي: شراء أغراض بسيطة وتوصيلها للمنزل.",fr:"Exemple : acheter quelques articles et les livrer à domicile."}},
+{id:-4,urgency:"flexible",category:"tidy",price:80,lat:30.35,lng:-9.56,title:{ar:"ترتيب غرفة وتنظيم خزانة",fr:"Ranger une chambre et organiser une armoire"},time:{ar:"نهاية الأسبوع",fr:"Ce week-end"},desc:{ar:"مثال توضيحي: مساعدة في ترتيب غرفة وتنظيم الخزانة، والمقابل يحدده صاحب الطلب.",fr:"Exemple : aide pour ranger une chambre et organiser une armoire ; le prix est fixé par la personne qui demande."}}
+];
+var CITIES=[{k:"agadir",ar:"أكادير",fr:"Agadir",lat:30.43,lng:-9.60},{k:"casablanca",ar:"الدار البيضاء",fr:"Casablanca",lat:33.57,lng:-7.59},{k:"rabat",ar:"الرباط",fr:"Rabat",lat:34.02,lng:-6.84},{k:"marrakech",ar:"مراكش",fr:"Marrakech",lat:31.63,lng:-7.98},{k:"fes",ar:"فاس",fr:"Fès",lat:34.03,lng:-5.00},{k:"tanger",ar:"طنجة",fr:"Tanger",lat:35.76,lng:-5.83},{k:"meknes",ar:"مكناس",fr:"Meknès",lat:33.89,lng:-5.55},{k:"oujda",ar:"وجدة",fr:"Oujda",lat:34.69,lng:-1.91},{k:"tetouan",ar:"تطوان",fr:"Tétouan",lat:35.58,lng:-5.37},{k:"kenitra",ar:"القنيطرة",fr:"Kénitra",lat:34.26,lng:-6.58}];
+var ZK=CITIES.map(function(c){return c.k});
+var UR=["flexible","today","urgent"],RK="qarib_reports",EXP=48*3600*1000;
+function km(a,b){var R=6371,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lng-a.lng)*r,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(x))}
+function state(r){return r.demo?"open":(r.done?"done":((Date.now()-(r.ts||r.id)>EXP)?"expired":"open"))}
+function zn(k){var r=tr("zone_approx");CITIES.forEach(function(c){if(c.k===k)r=c[lang]});return r}
+var KEY="qarib_requests",LK="qarib_lang";
+var CATS=["moving","repair","delivery","tidy","other"],OLD={"نقل وأثاث":"moving","صيانة بسيطة":"repair","توصيل أغراض":"delivery"};
+var lang="ar",map=null,layer=null,me=null,reqs=[],cat="all",q="",loc=null,draft=null,shape=null,picking=false,userPos=null,sortBy="new",maxKm=0,repKey=null,offT=null,showClosed=false;
+try{lang=localStorage.getItem(LK)==="fr"?"fr":"ar"}catch(e){}
+function $(i){return document.getElementById(i)}
+function tr(k){return T[lang][k]}
+function snap(v){return Math.round(+v*100)/100}
+function h(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function pt(p){return p==null?"—":p+" DH"}
+/* Sanitize anything read from storage (also coarsens old precise coordinates, drops old demo rows) */
+function clean(r){
+  if(!r||typeof r!=="object"||!(+r.id>=10))return null;
+  var la=+r.lat,ln=+r.lng,p=parseFloat(r.price);
+  if(!isFinite(la)||!isFinite(ln)||Math.abs(la)>90||Math.abs(ln)>180)return null;
+  return{id:+r.id,title:String(r.title||"").slice(0,80),category:CATS.indexOf(r.category)>-1?r.category:(OLD[r.category]||"moving"),price:(isFinite(p)&&p>=0&&p<=1000000)?p:null,time:String(r.time||"").slice(0,40),desc:String(r.desc||"").slice(0,500),lat:snap(la),lng:snap(ln),zone:ZK.indexOf(r.zone)>-1?r.zone:"",urgency:UR.indexOf(r.urgency)>-1?r.urgency:"",done:!!r.done,ts:+r.ts>0?+r.ts:+r.id};
+}
+try{var raw=JSON.parse(localStorage.getItem(KEY)||"[]");reqs=Array.isArray(raw)?raw.map(clean).filter(Boolean):[]}catch(e){reqs=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(reqs));return true}catch(e){return false}}
+save();if(layer){
+    layer.clearLayers();
+    a.filter(function(r){return state(r)==="open"}).forEach(function(r){var u=r.urgency==="urgent";L.marker([r.lat,r.lng],{icon:L.divIcon({className:"custom-pin"+(u?" urgpin":""),html:(u?"⚡ ":"")+pt(r.price),iconSize:[u?74:60,25]})}).bindPopup(pop(r)).addTo(layer)});
+  }
+}
+
+function initMap(){
+  try{
+    map=L.map("map",{zoomControl:false}).setView([30.35,-9.54],14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+    map.on("click",function(e){if(picking)setDraft(e.latlng.lat,e.latlng.lng)});
+  }catch(e){map=null;layer=null;$("map").textContent=tr("nomap")}
+}
+function switchTab(n){
+  if(n!=="map"&&picking)closePicker();
+  ["map","list","create","chat","profile"].forEach(function(t){$("v-"+t).classList.toggle("on",t===n)});
+  document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===n)});
+  if(n==="map"&&map)setTimeout(function(){map.invalidateSize()},200);
+}
+
+/* Location picking: draft -> confirm / cancel, and a real undo afterwards */
+function setDraft(lat,lng){
+  if(!map)return;
+  var la=snap(lat),ln=snap(lng);
+  draft={lat:la,lng:ln};
+  if(shape)map.removeLayer(shape);
+  shape=L.circle([la,ln],{radius:600,color:"#2563eb",fillOpacity:.2}).addTo(map);
+  $("pk-ok").disabled=false;$("pk-t").textContent=tr("pick_ready");
+  setTimeout(function(){map.setView([la,ln],14)},250);
+}
+function openPicker(){
+  picking=true;draft=null;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+  $("pk-ok").disabled=true;$("pk-t").textContent=tr("pick_hint");$("picker").hidden=false;switchTab("map");
+}
+function closePicker(){
+  picking=false;draft=null;$("picker").hidden=true;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+}
+function locUi(){
+  $("loc-t").textContent=loc?(loc.zone?tr("loc_city"):tr("loc_ok")):tr("loc_none");
+  $("loc-undo").hidden=!loc;$("f-city").value=loc&&loc.zone?loc.zone:"";
+}
+$("f-city").onchange=function(){
+  var k=this.value,c=null;CITIES.forEach(function(x){if(x.k===k)c=x});
+  if(picking)closePicker();
+  loc=c?{lat:c.lat,lng:c.lng,zone:c.k}:null;locUi();
+};
+function getPos(ok){
+  if(!navigator.geolocation){alert(tr("gps_none"));return}
+  navigator.geolocation.getCurrentPosition(ok,function(){alert(tr("gps_fail"))},{enableHighAccuracy:true,timeout:15000});
+}
+$("b-pick").onclick=function(){if(!map){alert(tr("nomap"));return}openPicker()};
+$("b-gps").onclick=function(){if(!map){alert(tr("nomap"));return}getPos(function(p){openPicker();setDraft(p.coords.latitude,p.coords.longitude)})};
+$("pk-ok").onclick=function(){if(!draft)return;loc=draft;closePicker();locUi();switchTab("create")};
+$("pk-no").onclick=function(){closePicker();locUi();switchTab("create")};
+$("loc-undo").onclick=function(){loc=null;locUi()};
+$("gps-top").onclick=function(){
+  if(!map)return;
+  getPos(function(p){
+    var la=p.coords.latitude,ln=p.coords.longitude;
+    map.setView([la,ln],15);
+    if(me)map.removeLayer(me);
+    me=L.circleMarker([la,ln],{radius:8,fillColor:"#2563eb",color:"#fff",weight:2,fillOpacity:1}).addTo(map).bindPopup(tr("you_here")).openPopup();
+  });
+};
+
+$("form").onsubmit=function(e){
+  e.preventDefault();
+  var er=$("err"),title=$("f-title").value.trim(),price=Number($("f-price").value);
+function list(){
+  var a=DEMO.map(function(d){return{id:d.id,demo:1,category:d.category,price:d.price,lat:d.lat,lng:d.lng,urgency:d.urgency,title:d.title[lang],time:d.time[lang],desc:d.desc[lang]}}).concat(reqs);
+  a=a.filter(function(r){return(cat==="all"||r.category===cat)&&(!q||(r.title+" "+r.desc).toLowerCase().indexOf(q)>-1)&&(showClosed||state(r)==="open")});
+  a=a.map(function(r){var c=Object.assign({},r);c.km=userPos?km(userPos,r):null;return c});
+  if(maxKm>0&&userPos)a=a.filter(function(r){return r.km!=null&&r.km<=maxKm});
+  if(sortBy==="price")a.sort(function(x,y){return(y.price==null?-1:y.price)-(x.price==null?-1:x.price)});
+  if(sortBy==="near"&&userPos)a.sort(function(x,y){return x.km-y.km});
+  return a;
+}
+function pop(r){
+  var d=h("div","pop");d.appendChild(h("b",null,r.title));d.appendChild(h("p",null,r.desc||""));
+  var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};d.appendChild(b);return d;
+}
+function stat(){
+  var ok=true;
+  try{localStorage.setItem("__q","1");localStorage.removeItem("__q")}catch(e){ok=false}
+  $("cnt-v").textContent=String(reqs.length);$("stor-v").textContent=tr(ok?"stor_ok":"stor_bad");
+}
+function cityOpts(){
+  var sel=$("f-city");while(sel.options.length>1)sel.remove(1);
+  CITIES.forEach(function(c){var o=document.createElement("option");o.value=c.k;o.textContent=c[lang];sel.appendChild(o)});
+  sel.value=loc&&loc.zone?loc.zone:"";
+}
+function render(){
+  stat();
+  var box=$("list-box"),a=list();box.textContent="";
+  if(!a.length)box.appendChild(h("p","empty",tr("empty")));
+  a.forEach(function(r){
+    var c=h("div","card"),l=h("div");
+    l.appendChild(h("span","badge",tr("cat_"+r.category)));
+    if(r.demo)l.appendChild(h("span","badge demo",tr("demo_tag")));
+    if(r.urgency)l.appendChild(h("span","badge"+(r.urgency==="urgent"?" urg":""),tr("urg_"+r.urgency)));
+    var s0=state(r);if(s0!=="open")l.appendChild(h("span","badge demo",tr("st_"+s0)));
+    l.appendChild(h("h3",null,r.title));
+    l.appendChild(h("p",null,r.time||"—"));
+    l.appendChild(h("p",null,tr("zone")+" "+zn(r.zone)+(r.km!=null?" - ~"+r.km.toFixed(1)+" "+tr("km"):"")));
+    if(r.desc)l.appendChild(h("p",null,r.desc));
+    c.appendChild(l);
+    var rt=h("div","rt");rt.appendChild(h("span","pr",pt(r.price)));
+    var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChif(layer){
+    layer.clearLayers();
+    a.filter(function(r){return state(r)==="open"}).forEach(function(r){var u=r.urgency==="urgent";L.marker([r.lat,r.lng],{icon:L.divIcon({className:"custom-pin"+(u?" urgpin":""),html:(u?"⚡ ":"")+pt(r.price),iconSize:[u?74:60,25]})}).bindPopup(pop(r)).addTo(layer)});
+  }
+}
+
+function initMap(){
+  try{
+    map=L.map("map",{zoomControl:false}).setView([30.35,-9.54],14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+    map.on("click",function(e){if(picking)setDraft(e.latlng.lat,e.latlng.lng)});
+  }catch(e){map=null;layer=null;$("map").textContent=tr("nomap")}
+}
+function switchTab(n){
+  if(n!=="map"&&picking)closePicker();
+  ["map","list","create","chat","profile"].forEach(function(t){$("v-"+t).classList.toggle("on",t===n)});
+  document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===n)});
+  if(n==="map"&&map)setTimeout(function(){map.invalidateSize()},200);
+}
+
+/* Location picking: draft -> confirm / cancel, and a real undo afterwards */
+function setDraft(lat,lng){
+  if(!map)return;
+  var la=snap(lat),ln=snap(lng);
+  draft={lat:la,lng:ln};
+  if(shape)map.removeLayer(shape);
+  shape=L.circle([la,ln],{radius:600,color:"#2563eb",fillOpacity:.2}).addTo(map);
+  $("pk-ok").disabled=false;$("pk-t").textContent=tr("pick_ready");
+  setTimeout(function(){map.setView([la,ln],14)},250);
+}
+function openPicker(){
+  picking=true;draft=null;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+  $("pk-ok").disabled=true;$("pk-t").textContent=tr("pick_hint");$("picker").hidden=false;switchTab("map");
+}
+function closePicker(){
+  picking=false;draft=null;$("picker").hidden=true;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+}
+function locUi(){
+  $("loc-t").textContent=loc?(loc.zone?tr("loc_city"):tr("loc_ok")):tr("loc_none");
+  $("loc-undo").hidden=!loc;$("f-city").value=loc&&loc.zone?loc.zone:"";
+}
+$("f-city").onchange=function(){
+  var k=this.value,c=null;CITIES.forEach(function(x){if(x.k===k)c=x});at(r.title)};rt.appendChild(b);
+    var rp=h("button","btn sm sec",tr("btn_report"));rp.type="button";rp.onclick=function(){openReport(r.id)};rt.appendChild(rp);
+    if(!r.demo){var sh=h("button","btn sm sec",tr("share"));sh.type="button";sh.onclick=function(){shareReq(r)};rt.appendChild(sh);var cp=h("button","btn sm sec",tr("copy"));cp.type="button";cp.onclick=function(){copyReq(r)};rt.appendChild(cp);var st=h("button","btn sm sec",tr(s0==="open"?"mark_done":"reopen"));st.type="button";st.onclick=function(){toggleDone(r.id)};rt.appendChild(st)}
+    if(!r.demo){var d=h("button","btn sm sec",tr("del"));d.type="button";d.onclick=function(){reqs=reqs.filter(function(x){return x.id!==r.id});save();render()};rt.appendChild(d)}
+    c.appendChild(rt);box.appendChild(c);
+  });
+if(layer){
+    layer.clearLayers();
+    a.filter(function(r){return state(r)==="open"}).forEach(function(r){var u=r.urgency==="urgent";L.marker([r.lat,r.lng],{icon:L.divIcon({className:"custom-pin"+(u?" urgpin":""),html:(u?"⚡ ":"")+pt(r.price),iconSize:[u?74:60,25]})}).bindPopup(pop(r)).addTo(layer)});
+  }
+}
+
+function initMap(){
+  try{
+    map=L.map("map",{zoomControl:false}).setView([30.35,-9.54],14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+    map.on("click",function(e){if(picking)setDraft(e.latlng.lat,e.latlng.lng)});
+  }catch(e){map=null;layer=null;$("map").textContent=tr("nomap")}
+}
+function switchTab(n){
+  if(n!=="map"&&picking)closePicker();
+  ["map","list","create","chat","profile"].forEach(function(t){$("v-"+t).classList.toggle("on",t===n)});
+  document.querySelectorAll("[data-tab]").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===n)});
+  if(n==="map"&&map)setTimeout(function(){map.invalidateSize()},200);
+}
+
+/* Location picking: draft -> confirm / cancel, and a real undo afterwards */
+function setDraft(lat,lng){
+  if(!map)return;
+  var la=snap(lat),ln=snap(lng);
+  draft={lat:la,lng:ln};
+  if(shape)map.removeLayer(shape);
+  shape=L.circle([la,ln],{radius:600,color:"#2563eb",fillOpacity:.2}).addTo(map);
+  $("pk-ok").disabled=false;$("pk-t").textContent=tr("pick_ready");
+  setTimeout(function(){map.setView([la,ln],14)},250);
+}
+function openPicker(){
+  picking=true;draft=null;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+  $("pk-ok").disabled=true;$("pk-t").textContent=tr("pick_hint");$("picker").hidden=false;switchTab("map");
+}
+function closePicker(){
+  picking=false;draft=null;$("picker").hidden=true;
+  if(shape&&map){map.removeLayer(shape);shape=null}
+}
+function locUi(){
+  $("loc-t").textContent=loc?(loc.zone?tr("loc_city"):tr("loc_ok")):tr("loc_none");
+  $("loc-undo").hidden=!loc;$("f-city").value=loc&&loc.zone?loc.zone:"";
+}
+$("f-city").onchange=function(){
+  var k=this.value,c=null;CITIES.forEach(function(x){if(x.k===k)c=x});
+  if(picking)closePicker();
+  loc=c?{lat:c.lat,lng:c.lng,zone:c.k}:null;locUi();
+};
+function getPos(ok){
+  if(!navigator.geolocation){alert(tr("gps_none"));return}
+  navigator.geolocation.getCurrentPosition(ok,function(){alert(tr("gps_fail"))},{enableHighAccuracy:true,timeout:15000});
+}
+$("b-pick").onclick=function(){if(!map){alert(tr("nomap"));return}openPicker()};
+$("b-gps").onclick=function(){if(!map){alert(tr("nomap"));return}getPos(function(p){openPicker();setDraft(p.coords.latitude,p.coords.longitude)})};
+$("pk-ok").onclick=function(){if(!draft)return;loc=draft;closePicker();locUi();switchTab("create")};
+$("pk-no").onclick=function(){closePicker();locUi();switchTab("create")};
+$("loc-undo").onclick=function(){loc=null;locUi()};
+$("gps-top").onclick=function(){
+  if(!map)return;
+  getPos(function(p){
+    var la=p.coords.latitude,ln=p.coords.longitude;
+    map.setView([la,ln],15);
+    if(me)map.removeLayer(me);
+    me=L.circleMarker([la,ln],{radius:8,fillColor:"#2563eb",color:"#fff",weight:2,fillOpacity:1}).addTo(map).bindPopup(tr("you_here")).openPopup();
+  });
+};
+
+$("form").onsubmit=function(e){
+  e.preventDefault();
+  var er=$("err"),title=$("f-title").value.trim(),price=Number($("f-price").value);
+er.textContent="";
+  if(!title){er.textContent=tr("e_title");return}
+  if($("f-price").value===""||!isFinite(price)||price<0||price>1000000){er.textContent=tr("e_price");return}
+  if(!loc){er.textContent=tr("e_loc");return}
+  if(!$("adult").checked){er.textContent=tr("e_adult");return}
+  var cv=$("f-cat").value;
+  reqs.unshift({id:Date.now(),title:title.slice(0,80),category:CATS.indexOf(cv)>-1?cv:"moving",price:price,time:$("f-time").value.trim().slice(0,40),desc:$("f-desc").value.trim().slice(0,500),lat:loc.lat,lng:loc.lng,zone:loc.zone||"",urgency:UR.indexOf($("f-urg").value)>-1?$("f-urg").value:"flexible",done:false,ts:Date.now()});
+  if(!save()){reqs.shift();er.textContent=tr("e_save");return}
+  $("form").reset();loc=null;locUi();render();switchTab("list");
+};
+
+/* Chat: local simulation only */
+function openChat(title){$("about").textContent=tr("chat_about")+" "+title;switchTab("chat")}
+function sendMsg(){
+  var i=$("chat-in"),t=i.value.trim();if(!t)return;
+  var m=$("msgs");m.appendChild(h("div","b me",t));i.value="";m.scrollTop=m.scrollHeight;
+  setTimeout(function(){m.appendChild(h("div","b",tr("chat_re")));m.scrollTop=m.scrollHeight},900);
+}
+$("send").onclick=sendMsg;
+$("chat-in").onkeydown=function(e){if(e.key==="Enter")sendMsg()};
+
+$("clear").onclick=function(){if(confirm(tr("clear_q"))){reqs=[];try{localStorage.removeItem(KEY);localStorage.removeItem(RK)}catch(e){}render()}};
+$("search").oninput=function(){q=this.value.trim().toLowerCase();render()};
+document.querySelectorAll("[data-cat]").forEach(function(b){b.onclick=function(){
+  cat=b.getAttribute("data-cat");
+  document.querySelectorAll("[data-cat]").forEach(function(x){x.classList.toggle("on",x===b)});render();
+}});
+document.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){switchTab(b.getAttribute("data-tab"))}});
+
+/* Sorting / distance (user position stays in memory only, never saved) */
+function needPos(done){
+  if(!navigator.geolocation){alert(tr("gps_none"));done(false);return}
+  navigator.geolocation.getCurrentPosition(function(p){userPos={lat:p.coords.latitude,lng:p.coords.longitude};done(true)},function(){alert(tr("gps_fail"));done(false)},{timeout:15000});
+}
+function distNote(){$("dist-note").textContent=(userPos&&(sortBy==="near"||maxKm>0))?tr("dist_note"):""}
+function applyCtl(){
+  var s=$("s-sort").value,d=+$("s-dist").value;
+  function go(){sortBy=s;maxKm=d;distNote();render()}
+  if((s==="near"||d>0)&&!userPos){needPos(function(ok){if(ok)go();else{$("s-sort").value=sortBy;$("s-dist").value=String(maxKm)}});return}
+  go();
+}
+$("s-sort").onchange=applyCtl;$("s-dist").onchange=applyCtl;
+
+/* Share: text summary only (requests are local, so there is no link to share yet) */
+function shareReq(r){
+  var t=tr("share_hdr")+": "+r.title+"\n"+tr("cat_"+r.category)+" - "+pt(r.price)+"\n"+tr("zone")+" "+zn(r.zone);
+  if(navigator.share){navigator.share({title:"QARIB",text:t}).catch(function(){})}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert(tr("copied"))},function(){alert(tr("share_fail"))})}
+  else alert(tr("share_fail"));
+}
+
+function copyReq(r){
+  var t=tr("share_hdr")+": "+r.title+"\n"+tr("cat_"+r.category)+" - "+pt(r.price)+"\n"+tr("zone")+" "+zn(r.zone);
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert(tr("copied"))},function(){alert(tr("share_fail"))})}
+  else alert(tr("share_fail"));
+}
+/* Mark as helped / reactivate (an expired or finished request returns to the map with a fresh 48 h clock) */
+function toggleDone(id){
+  reqs.forEach(function(x){if(x.id===id){if(state(x)==="open")x.done=true;else{x.done=false;x.ts=Date.now()}}});
+  save();render();
+}
+$("s-closed").onchange=function(){showClosed=this.checked;render()};
+
+/* Report: saved locally only (no moderator receives it yet) */
+function openReport(id){repKey=id;$("rp-st").textContent="";$("modal").hidden=false}
+$("chat-rep").onclick=function(){openReport("chat")};
+$("rp-no").onclick=function(){$("modal").hidden=true};
+$("rp-ok").onclick=function(){
+  var a=[];
+  try{a=JSON.parse(localStorage.getItem(RK)||"[]");if(!Array.isArray(a))a=[]}catch(e){a=[]}
+  a.unshift({ref:String(repKey),reason:$("rp-reason").value,ts:Date.now()});
+  try{localStorage.setItem(RK,JSON.stringify(a.slice(0,50)))}catch(e){}
+  $("rp-st").textContent=tr("report_done");
+  setTimeout(function(){$("modal").hidden=true},1000);
+};
+
+/* Online / offline indicator (navigator.onLine only reflects the network link, not real Internet access) */
+function net(){
+  var o=$("off");
+  if(navigator.onLine===false){clearTimeout(offT);o.hidden=false;o.className="off";o.textContent=tr("off_t")}
+  else if(!o.hidden){o.className="off ok";o.textContent=tr("on_t");clearTimeout(offT);offT=setTimeout(function(){o.hidden=true},2500)}
+}
+window.addEventListener("offline",net);window.addEventListener("online",net);
+
+function setLang(l){
+  lang=l;try{localStorage.setItem(LK,l)}catch(e){}
+  document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";
+  document.querySelectorAll("[data-i]").forEach(function(n){n.textContent=T[l][n.getAttribute("data-i")]});
+  document.querySelectorAll("[data-p]").forEach(function(n){n.placeholder=T[l][n.getAttribute("data-p")]});
+  $("lang-btn").textContent=l==="ar"?"Français":"العربية";
+  $("send").setAttribute("aria-label",tr("send"));$("tab-create").setAttribute("aria-label",tr("title_create"));
+  if(picking)$("pk-t").textContent=draft?tr("pick_ready"):tr("pick_hint");
+  $("err").textContent="";cityOpts();locUi();render();net();distNote();
+}
+$("lang-btn").onclick=function(){setLang(lang==="ar"?"fr":"ar")};
+initMap();
+setLang(lang);
+net();
+</script>
+</body>
+</html>
