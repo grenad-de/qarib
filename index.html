@@ -84,6 +84,8 @@ nav{display:flex;justify-content:space-around;align-items:center;border-top:1px 
 .urgpin{background:#dc2626}
 #modal{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
 .mb{background:#fff;border-radius:16px;padding:16px;width:100%}.r2{display:flex;gap:8px;margin-top:10px}
+.lg{position:absolute;inset:0;background:#fff;z-index:3000;overflow:auto;display:flex;align-items:center;padding:20px}
+.lg .mb{padding:0;width:100%}
 .pop{min-width:150px}.pop p{font-size:12px;color:#4b5563;margin:4px 0 8px}
 </style>
 </head>
@@ -170,12 +172,13 @@ nav{display:flex;justify-content:space-around;align-items:center;border-top:1px 
       <div class="pf"><div class="av">؟</div><h2 style="margin-top:8px" data-i="prof_name"></h2><p class="badge demo" data-i="prof_unv"></p></div>
       <div class="box" style="margin-top:0">
         <div class="rw"><span data-i="prof_rating"></span><b data-i="prof_none"></b></div>
-        <div class="rw"><span data-i="prof_phone"></span><b data-i="prof_unreg"></b></div>
+        <div class="rw"><span data-i="prof_phone"></span><b id="ph-v" dir="ltr"></b></div>
         <div class="rw"><span data-i="cnt"></span><b id="cnt-v">0</b></div>
         <div class="rw"><span data-i="stor"></span><b id="stor-v"></b></div>
       </div>
       <p class="info" data-i="prof_note"></p>
       <button class="btn sec" type="button" id="clear" style="margin-top:14px" data-i="btn_clear"></button>
+      <button class="btn sec" type="button" id="logout" style="margin-top:8px" data-i="btn_logout"></button>
     </section>
 
     <div id="picker" hidden>
@@ -183,6 +186,31 @@ nav{display:flex;justify-content:space-around;align-items:center;border-top:1px 
       <div class="r"><button class="btn green sm" type="button" id="pk-ok" data-i="btn_confirm"></button><button class="btn red sm" type="button" id="pk-no" data-i="btn_cancel"></button></div>
     </div>
   </main>
+
+  <div class="lg" id="login">
+    <div class="mb">
+      <button class="btn sec sm" type="button" id="lg-lang">Français</button>
+      <h2 style="margin-top:12px" data-i="login_t"></h2>
+      <p class="st" id="lg-load" data-i="loading">جارٍ التحميل… | Chargement…</p>
+      <div id="lg1" hidden>
+        <p class="st" style="text-align:start" data-i="login_s"></p>
+        <label for="lg-phone" data-i="lg_phone"></label>
+        <input id="lg-phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="+212 6 12 34 56 78">
+        <label class="chk"><input id="lg-adult" type="checkbox"><span data-i="adult"></span></label>
+        <p class="warn" style="margin-top:12px" data-i="lg_privacy"></p>
+        <button class="btn" type="button" id="lg-send" data-i="lg_send"></button>
+      </div>
+      <div id="lg2" hidden>
+        <p class="st" style="text-align:start"><span data-i="lg_sent"></span> <bdi id="lg-shown" dir="ltr"></bdi></p>
+        <label for="lg-code" data-i="lg_code"></label>
+        <input id="lg-code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" dir="ltr" placeholder="000000">
+        <button class="btn" type="button" id="lg-verify" style="margin-top:12px" data-i="lg_verify"></button>
+        <button class="btn sec" type="button" id="lg-back" style="margin-top:8px" data-i="lg_back"></button>
+      </div>
+      <p class="err" id="lg-err" role="alert"></p>
+      <div id="rc"></div>
+    </div>
+  </div>
 
   <div id="modal" role="dialog" aria-modal="true" hidden>
     <div class="mb"><h2 data-i="report_t"></h2><p class="warn" data-i="report_note"></p>
@@ -202,9 +230,25 @@ nav{display:flex;justify-content:space-around;align-items:center;border-top:1px 
 </div>
 
 <script>
+window.addEventListener("error",function(e){var l=document.getElementById("lg-load");if(l){l.hidden=false;l.textContent="خطأ / Erreur: "+(e.message||"")}});
+setTimeout(function(){if(!window.__qok){var l=document.getElementById("lg-load");if(l){l.hidden=false;l.textContent="تعذّر تشغيل التطبيق. حدّث الصفحة وتأكد من الاتصال بالإنترنت. | L’application n’a pas démarré. Actualisez la page et vérifiez la connexion."}}},8000);
+</script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,RecaptchaVerifier,signInWithPhoneNumber,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,query,orderBy,limit,onSnapshot,addDoc,updateDoc,deleteDoc,doc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyABfgG7nRmCLxD40T3LolYkoQ4sG6Kw5Zg",
+  authDomain: "qarib-d22d9.firebaseapp.com",
+  projectId: "qarib-d22d9",
+  storageBucket: "qarib-d22d9.firebasestorage.app",
+  messagingSenderId: "577684611307",
+  appId: "1:577684611307:web:d88c5d1f27687996169eae"
+};
+const fbApp=initializeApp(firebaseConfig),auth=getAuth(fbApp),db=getFirestore(fbApp);
 var T={
-ar:{copy:"نسخ",mark_done:"تمت المساعدة",reopen:"إعادة التفعيل",st_done:"تمت المساعدة",st_expired:"منتهٍ (مرّت 48 ساعة)",show_closed:"إظهار الطلبات المكتملة والمنتهية",d1:"أقل من 1 كم",off_t:"لا يوجد اتصال بالإنترنت: قد لا تظهر الخريطة، وطلباتك المحفوظة على الجهاز ما زالت متاحة.",on_t:"عاد الاتصال بالإنترنت.",lbl_sort:"الترتيب",sort_new:"الافتراضي",sort_price:"الأعلى مقابلًا",sort_near:"الأقرب (يتطلب موقعك)",lbl_dist:"المسافة",dist_all:"أي مسافة",d2:"أقل من 2 كم",d5:"أقل من 5 كم",d10:"أقل من 10 كم",dist_note:"المسافات تقريبية (من موقعك الحالي إلى منطقة الطلب)، وموقعك لا يُحفظ.",km:"كم",share:"مشاركة",share_fail:"تعذّرت المشاركة.",copied:"تم نسخ ملخص الطلب.",share_hdr:"طلب مساعدة عبر QARIB",lbl_urg:"درجة الاستعجال",urg_flexible:"مرن",urg_today:"خلال اليوم",urg_urgent:"عاجل",btn_report:"إبلاغ",report_t:"إبلاغ عن محتوى",report_note:"البلاغ يُحفظ على جهازك فقط ولا يصل إلى أي مشرف حاليًا. سيُربط بنظام مراجعة عند تفعيل Firebase.",rs_inappropriate:"محتوى غير لائق",rs_scam:"احتيال أو طلب دفع مشبوه",rs_unsafe:"طلب لقاء غير آمن",rs_other:"سبب آخر",btn_send:"حفظ البلاغ",report_done:"تم حفظ البلاغ على جهازك فقط.",cat_tidy:"ترتيب ومنزل",cat_tidy_f:"ترتيب ومساعدة في البيت",cat_other:"أخرى",cat_other_f:"أخرى (اشرحها في الوصف)",price_note:"أنت من يحدد المقابل، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع. الاتفاق النهائي يكون بينك وبين الطرف الآخر. اكتب 0 إن كانت المساعدة تطوعية.",city_ph:"— أو اختر مدينة (تقريبي) —",loc_city:"✓ تم اعتماد مركز المدينة كمنطقة تقريبية.",cnt:"طلباتي المحفوظة",stor:"التخزين المحلي",stor_ok:"يعمل",stor_bad:"غير متاح أو ممتلئ",zone:"المنطقة:",zone_approx:"منطقة تقريبية",banner:"نسخة تجريبية: البيانات محفوظة على هذا الجهاز فقط (localStorage). لا حسابات ولا مستخدمون حقيقيون بعد.",gps_btn:"موقعي",search:"ابحث في الطلبات…",cat_all:"الكل",cat_moving:"نقل وأثاث",cat_repair:"صيانة",cat_delivery:"توصيل",cat_moving_f:"نقل وأثاث",cat_repair_f:"إصلاحات وصيانة بسيطة",cat_delivery_f:"توصيل أغراض",nav_map:"الخريطة",nav_list:"الطلبات",nav_chat:"المحادثة",nav_profile:"حسابي",title_list:"الطلبات",list_note:"الطلبات المعلَّمة «مثال» توضيحية وليست حقيقية. طلباتك محفوظة على جهازك فقط ولا يراها أحد. الأسعار يحددها أصحاب الطلبات، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع.",demo_tag:"مثال",empty:"لا توجد طلبات مطابقة.",accept:"فتح محادثة تجريبية",del:"حذف",title_create:"إنشاء طلب مساعدة جديد",privacy:"يُحفظ الموقع بدقة تقريبية (نحو 1 كم) ولا يُعرض كعنوان أو إحداثيات. لا تكتب عنوانًا دقيقًا أو بيانات شخصية. اللقاء الحضوري مخصص للبالغين الموثّقين فقط، والتحقق من الهوية غير مفعّل بعد.",lbl_title:"عنوان الطلب",ph_title:"مثال: نقل أريكة، ترتيب غرفة، إصلاح باب…",lbl_cat:"التصنيف",lbl_price:"المقابل المقترح (DH)",lbl_time:"التوقيت",ph_time:"الآن / اليوم",lbl_desc:"الوصف",ph_desc:"اشرح ما تحتاجه بالضبط…",lbl_loc:"موقع الطلب (تقريبي)",btn_gps:"موقعي الحالي",btn_pick:"اختيار بالنقر",loc_none:"لم يتم اختيار موقع بعد.",loc_ok:"✓ تم اعتماد موقع تقريبي (نحو 1 كم).",btn_undo:"إلغاء اختيار الموقع",adult:"أؤكد أنني بالغ (18 سنة فأكثر).",btn_submit:"حفظ الطلب (على جهازي فقط)",e_title:"اكتب عنوانًا للطلب.",e_price:"أدخل سعرًا صحيحًا.",e_loc:"اختر موقعًا تقريبيًا وأكّده أولًا.",e_adult:"يجب تأكيد أنك بالغ.",e_save:"تعذّر الحفظ على الجهاز.",pick_hint:"انقر على الخريطة لاختيار موقع تقريبي.",pick_ready:"الدائرة تمثل منطقة تقريبية (نحو 1 كم). أكّدها أو ألغِها.",btn_confirm:"تأكيد",btn_cancel:"إلغاء",gps_fail:"تعذّر تحديد موقعك. تأكد من تفعيل GPS ومن سماح المتصفح بالوصول إلى الموقع، أو اختر مدينة أو انقر على الخريطة.",gps_none:"هذا المتصفح لا يدعم تحديد الموقع. اختر مدينة من القائمة.",you_here:"موقعك الدقيق الحالي: يظهر لك أنت فقط على هذا الجهاز، ولا يُنشر ولا يُخزَّن.",nomap:"تعذّر تحميل الخريطة. تحقق من الاتصال بالإنترنت.",chat_t:"محادثة تجريبية (محاكاة)",chat_s:"لا يوجد شخص حقيقي هنا. الرسائل لا تغادر هاتفك.",chat_about:"بخصوص:",chat_ph:"اكتب رسالة تجريبية…",chat_re:"هذا رد آلي تجريبي. لا يوجد مستخدم حقيقي في هذه النسخة.",send:"إرسال",prof_name:"مستخدم تجريبي",prof_unv:"غير موثّق: التحقق من الهوية غير مفعّل",prof_rating:"التقييم",prof_none:"لا يوجد بعد",prof_phone:"رقم الهاتف",prof_unreg:"غير مسجّل",prof_note:"ملاحظة تقنية: التخزين محلي على هاتفك فقط عبر localStorage، ولن تظهر الطلبات لأي مستخدم آخر حتى يُربط التطبيق بقاعدة بيانات سحابية ونظام حسابات وتحقق.",btn_clear:"مسح كل بياناتي المحفوظة",clear_q:"حذف كل الطلبات المحفوظة على هذا الجهاز نهائيًا؟"},
-fr:{copy:"Copier",mark_done:"Aide reçue",reopen:"Réactiver",st_done:"Aide reçue",st_expired:"Expirée (48 h écoulées)",show_closed:"Afficher les demandes terminées et expirées",d1:"Moins de 1 km",off_t:"Pas de connexion Internet : la carte peut ne pas s’afficher ; vos demandes enregistrées restent disponibles.",on_t:"Connexion Internet rétablie.",lbl_sort:"Tri",sort_new:"Par défaut",sort_price:"Mieux payé d’abord",sort_near:"Plus proches (position requise)",lbl_dist:"Distance",dist_all:"Toute distance",d2:"Moins de 2 km",d5:"Moins de 5 km",d10:"Moins de 10 km",dist_note:"Distances approximatives (de votre position actuelle à la zone de la demande) ; votre position n’est pas enregistrée.",km:"km",share:"Partager",share_fail:"Partage impossible.",copied:"Résumé de la demande copié.",share_hdr:"Demande d’aide via QARIB",lbl_urg:"Degré d’urgence",urg_flexible:"Flexible",urg_today:"Aujourd’hui",urg_urgent:"Urgent",btn_report:"Signaler",report_t:"Signaler un contenu",report_note:"Le signalement est enregistré uniquement sur votre appareil et n’atteint aucun modérateur pour l’instant. Il sera relié à un système de modération avec Firebase.",rs_inappropriate:"Contenu inapproprié",rs_scam:"Arnaque ou paiement suspect",rs_unsafe:"Rencontre jugée dangereuse",rs_other:"Autre raison",btn_send:"Enregistrer le signalement",report_done:"Signalement enregistré sur votre appareil uniquement.",cat_tidy:"Rangement & maison",cat_tidy_f:"Rangement et aide à la maison",cat_other:"Autre",cat_other_f:"Autre (précisez dans la description)",price_note:"C’est vous qui fixez le prix ; l’application ne fixe aucun prix et ne traite aucun paiement. L’accord final se fait entre vous et l’autre personne. Saisissez 0 si l’aide est bénévole.",city_ph:"— ou choisir une ville (approximatif) —",loc_city:"✓ Centre-ville adopté comme zone approximative.",cnt:"Mes demandes enregistrées",stor:"Stockage local",stor_ok:"Fonctionne",stor_bad:"Indisponible ou plein",zone:"Zone :",zone_approx:"Zone approximative",banner:"Version de test : données enregistrées uniquement sur cet appareil (localStorage). Pas encore de comptes ni d’utilisateurs réels.",gps_btn:"Ma position",search:"Rechercher une demande…",cat_all:"Tous",cat_moving:"Déménagement",cat_repair:"Bricolage",cat_delivery:"Livraison",cat_moving_f:"Déménagement et meubles",cat_repair_f:"Petites réparations et bricolage",cat_delivery_f:"Livraison de courses",nav_map:"Carte",nav_list:"Demandes",nav_chat:"Chat",nav_profile:"Profil",title_list:"Demandes",list_note:"Les demandes marquées « Exemple » sont fictives. Vos demandes restent sur votre appareil et ne sont vues par personne. Les prix sont fixés par les personnes qui demandent ; l’application ne fixe aucun prix et ne traite aucun paiement.",demo_tag:"Exemple",empty:"Aucune demande correspondante.",accept:"Ouvrir un chat de test",del:"Supprimer",title_create:"Créer une demande d’aide",privacy:"La position est enregistrée de façon approximative (environ 1 km) et jamais affichée comme adresse ou coordonnées. N’écrivez ni adresse exacte ni données personnelles. Les rencontres en personne sont réservées aux adultes vérifiés ; la vérification d’identité n’est pas encore active.",lbl_title:"Titre de la demande",ph_title:"Ex. : déplacer un canapé, ranger une pièce, réparer une porte…",lbl_cat:"Catégorie",lbl_price:"Prix proposé (DH)",lbl_time:"Horaire",ph_time:"Maintenant / aujourd’hui",lbl_desc:"Description",ph_desc:"Expliquez précisément ce dont vous avez besoin…",lbl_loc:"Lieu de la demande (approximatif)",btn_gps:"Ma position",btn_pick:"Choisir sur la carte",loc_none:"Aucun lieu choisi pour l’instant.",loc_ok:"✓ Zone approximative confirmée (environ 1 km).",btn_undo:"Annuler le lieu choisi",adult:"Je confirme être majeur(e) (18 ans ou plus).",btn_submit:"Enregistrer (sur mon appareil)",e_title:"Saisissez un titre.",e_price:"Saisissez un prix valide.",e_loc:"Choisissez d’abord une zone approximative et confirmez-la.",e_adult:"Vous devez confirmer être majeur(e).",e_save:"Enregistrement impossible sur l’appareil.",pick_hint:"Touchez la carte pour choisir une zone approximative.",pick_ready:"Le cercle représente une zone approximative (environ 1 km). Confirmez ou annulez.",btn_confirm:"Confirmer",btn_cancel:"Annuler",gps_fail:"Impossible de déterminer votre position. Vérifiez que le GPS est activé et que le navigateur y est autorisé, ou choisissez une ville ou touchez la carte.",gps_none:"Ce navigateur ne prend pas en charge la géolocalisation. Choisissez une ville dans la liste.",you_here:"Votre position exacte : visible par vous seul sur cet appareil, jamais publiée ni enregistrée.",nomap:"Impossible de charger la carte. Vérifiez votre connexion Internet.",chat_t:"Chat de test (simulation)",chat_s:"Aucune personne réelle ici. Les messages ne quittent pas votre téléphone.",chat_about:"Concerne :",chat_ph:"Écrivez un message de test…",chat_re:"Réponse automatique de test. Aucun utilisateur réel dans cette version.",send:"Envoyer",prof_name:"Utilisateur de test",prof_unv:"Non vérifié : vérification d’identité inactive",prof_rating:"Évaluation",prof_none:"Aucune pour l’instant",prof_phone:"Téléphone",prof_unreg:"Non renseigné",prof_note:"Note technique : le stockage est local à votre téléphone (localStorage). Les demandes ne seront visibles par aucun autre utilisateur tant que l’application n’est pas reliée à une base de données en ligne, à des comptes et à une vérification.",btn_clear:"Effacer toutes mes données",clear_q:"Supprimer définitivement toutes les demandes enregistrées sur cet appareil ?"}
+ar:{login_t:"تسجيل الدخول",login_s:"سجّل الدخول برقم هاتفك لنشر الطلبات ورؤية طلبات الآخرين.",lg_phone:"رقم الهاتف مع رمز الدولة",lg_send:"إرسال رمز التحقق",lg_code:"رمز التحقق (6 أرقام)",lg_verify:"تأكيد",lg_back:"تغيير الرقم",lg_sent:"أُرسل الرمز إلى",lg_privacy:"نستخدم رقم هاتفك لتسجيل الدخول فقط (عبر Firebase التابع لـ Google). الطلبات التي تنشرها تظهر للمستخدمين المسجّلين الآخرين بمنطقة تقريبية دون عنوان دقيق. التحقق من الهوية والعمر غير مفعّل بعد.",lg_e_phone:"أدخل رقمًا صحيحًا يبدأ بـ + ورمز الدولة.",lg_e_adult:"يجب تأكيد أنك بالغ (18 سنة فأكثر).",lg_e_code:"أدخل رمزًا من 6 أرقام.",lg_e_send:"تعذّر إرسال الرمز. تحقق من الرقم والاتصال ثم حاول لاحقًا.",lg_e_many:"محاولات كثيرة. انتظر قليلًا ثم حاول مجددًا.",lg_e_wrong:"الرمز غير صحيح أو انتهت صلاحيته.",loading:"جارٍ التحميل…",sending:"جارٍ الإرسال…",btn_logout:"تسجيل الخروج",e_load:"تعذّر تحميل الطلبات. تحقق من الاتصال.",copy:"نسخ",mark_done:"تمت المساعدة",reopen:"إعادة التفعيل",st_done:"تمت المساعدة",st_expired:"منتهٍ (مرّت 48 ساعة)",show_closed:"إظهار الطلبات المكتملة والمنتهية",d1:"أقل من 1 كم",off_t:"لا يوجد اتصال بالإنترنت: قد لا تظهر الخريطة، وطلباتك المحفوظة على الجهاز ما زالت متاحة.",on_t:"عاد الاتصال بالإنترنت.",lbl_sort:"الترتيب",sort_new:"الافتراضي",sort_price:"الأعلى مقابلًا",sort_near:"الأقرب (يتطلب موقعك)",lbl_dist:"المسافة",dist_all:"أي مسافة",d2:"أقل من 2 كم",d5:"أقل من 5 كم",d10:"أقل من 10 كم",dist_note:"المسافات تقريبية (من موقعك الحالي إلى منطقة الطلب)، وموقعك لا يُحفظ.",km:"كم",share:"مشاركة",share_fail:"تعذّرت المشاركة.",copied:"تم نسخ ملخص الطلب.",share_hdr:"طلب مساعدة عبر QARIB",lbl_urg:"درجة الاستعجال",urg_flexible:"مرن",urg_today:"خلال اليوم",urg_urgent:"عاجل",btn_report:"إبلاغ",report_t:"إبلاغ عن محتوى",report_note:"البلاغ يُحفظ على جهازك فقط ولا يصل إلى أي مشرف حاليًا. سيُربط بنظام مراجعة عند تفعيل Firebase.",rs_inappropriate:"محتوى غير لائق",rs_scam:"احتيال أو طلب دفع مشبوه",rs_unsafe:"طلب لقاء غير آمن",rs_other:"سبب آخر",btn_send:"حفظ البلاغ",report_done:"تم حفظ البلاغ على جهازك فقط.",cat_tidy:"ترتيب ومنزل",cat_tidy_f:"ترتيب ومساعدة في البيت",cat_other:"أخرى",cat_other_f:"أخرى (اشرحها في الوصف)",price_note:"أنت من يحدد المقابل، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع. الاتفاق النهائي يكون بينك وبين الطرف الآخر. اكتب 0 إن كانت المساعدة تطوعية.",city_ph:"— أو اختر مدينة (تقريبي) —",loc_city:"✓ تم اعتماد مركز المدينة كمنطقة تقريبية.",cnt:"طلباتي المنشورة",stor:"قاعدة البيانات",stor_ok:"سحابية (Firebase)",stor_bad:"غير متصلة",zone:"المنطقة:",zone_approx:"منطقة تقريبية",banner:"نسخة تجريبية على السحابة: الطلبات التي تنشرها تظهر للمستخدمين المسجّلين الآخرين بمنطقة تقريبية. لا تكتب بيانات شخصية. التحقق من الهوية والعمر غير مفعّل بعد.",gps_btn:"موقعي",search:"ابحث في الطلبات…",cat_all:"الكل",cat_moving:"نقل وأثاث",cat_repair:"صيانة",cat_delivery:"توصيل",cat_moving_f:"نقل وأثاث",cat_repair_f:"إصلاحات وصيانة بسيطة",cat_delivery_f:"توصيل أغراض",nav_map:"الخريطة",nav_list:"الطلبات",nav_chat:"المحادثة",nav_profile:"حسابي",title_list:"الطلبات",list_note:"طلبات المستخدمين المسجّلين بمنطقة تقريبية. الأسعار يحددها أصحاب الطلبات، والتطبيق لا يحدد الأسعار ولا يعالج أي دفع. التقِ أولًا في مكان عام، ولا تذهب إلى مكان معزول.",demo_tag:"مثال",empty:"لا توجد طلبات مطابقة.",accept:"فتح محادثة تجريبية",del:"حذف",title_create:"إنشاء طلب مساعدة جديد",privacy:"عند النشر يراه المستخدمون المسجّلون الآخرون بمنطقة تقريبية (نحو 1 كم) دون عنوان أو إحداثيات دقيقة. لا تكتب عنوانًا دقيقًا أو بيانات شخصية. اللقاء الحضوري مخصص للبالغين الموثّقين فقط، والتحقق من الهوية غير مفعّل بعد.",lbl_title:"عنوان الطلب",ph_title:"مثال: نقل أريكة، ترتيب غرفة، إصلاح باب…",lbl_cat:"التصنيف",lbl_price:"المقابل المقترح (DH)",lbl_time:"التوقيت",ph_time:"الآن / اليوم",lbl_desc:"الوصف",ph_desc:"اشرح ما تحتاجه بالضبط…",lbl_loc:"موقع الطلب (تقريبي)",btn_gps:"موقعي الحالي",btn_pick:"اختيار بالنقر",loc_none:"لم يتم اختيار موقع بعد.",loc_ok:"✓ تم اعتماد موقع تقريبي (نحو 1 كم).",btn_undo:"إلغاء اختيار الموقع",adult:"أؤكد أنني بالغ (18 سنة فأكثر).",btn_submit:"نشر الطلب",e_title:"اكتب عنوانًا للطلب.",e_price:"أدخل سعرًا صحيحًا.",e_loc:"اختر موقعًا تقريبيًا وأكّده أولًا.",e_adult:"يجب تأكيد أنك بالغ.",e_save:"تعذّر الحفظ. تحقق من الاتصال وحاول مجددًا.",pick_hint:"انقر على الخريطة لاختيار موقع تقريبي.",pick_ready:"الدائرة تمثل منطقة تقريبية (نحو 1 كم). أكّدها أو ألغِها.",btn_confirm:"تأكيد",btn_cancel:"إلغاء",gps_fail:"تعذّر تحديد موقعك. تأكد من تفعيل GPS ومن سماح المتصفح بالوصول إلى الموقع، أو اختر مدينة أو انقر على الخريطة.",gps_none:"هذا المتصفح لا يدعم تحديد الموقع. اختر مدينة من القائمة.",you_here:"موقعك الدقيق الحالي: يظهر لك أنت فقط على هذا الجهاز، ولا يُنشر ولا يُخزَّن.",nomap:"تعذّر تحميل الخريطة. تحقق من الاتصال بالإنترنت.",chat_t:"محادثة تجريبية (محاكاة)",chat_s:"لا يوجد شخص حقيقي هنا. الرسائل لا تغادر هاتفك.",chat_about:"بخصوص:",chat_ph:"اكتب رسالة تجريبية…",chat_re:"هذا رد آلي تجريبي. لا يوجد مستخدم حقيقي في هذه النسخة.",send:"إرسال",prof_name:"مستخدم تجريبي",prof_unv:"غير موثّق: التحقق من الهوية غير مفعّل",prof_rating:"التقييم",prof_none:"لا يوجد بعد",prof_phone:"رقم الهاتف",prof_unreg:"غير مسجّل",prof_note:"الطلبات محفوظة في قاعدة بيانات سحابية (Firebase) ويراها المستخدمون المسجّلون. رقم هاتفك يُستخدم لتسجيل الدخول فقط ولا يظهر في الطلبات. يمكنك حذف طلباتك في أي وقت.",btn_clear:"حذف كل طلباتي المنشورة",clear_q:"حذف كل طلباتك المنشورة نهائيًا؟"},
+fr:{login_t:"Connexion",login_s:"Connectez-vous avec votre numéro pour publier des demandes et voir celles des autres.",lg_phone:"Numéro avec indicatif du pays",lg_send:"Envoyer le code",lg_code:"Code de vérification (6 chiffres)",lg_verify:"Valider",lg_back:"Changer de numéro",lg_sent:"Code envoyé au",lg_privacy:"Votre numéro sert uniquement à la connexion (via Firebase, un service de Google). Les demandes publiées sont visibles par les autres utilisateurs connectés, avec une zone approximative et sans adresse exacte. La vérification d’identité et d’âge n’est pas encore active.",lg_e_phone:"Saisissez un numéro valide commençant par + et l’indicatif.",lg_e_adult:"Vous devez confirmer être majeur(e) (18 ans ou plus).",lg_e_code:"Saisissez un code à 6 chiffres.",lg_e_send:"Envoi du code impossible. Vérifiez le numéro et la connexion, puis réessayez.",lg_e_many:"Trop de tentatives. Patientez un peu puis réessayez.",lg_e_wrong:"Code incorrect ou expiré.",loading:"Chargement…",sending:"Envoi…",btn_logout:"Se déconnecter",e_load:"Impossible de charger les demandes. Vérifiez la connexion.",copy:"Copier",mark_done:"Aide reçue",reopen:"Réactiver",st_done:"Aide reçue",st_expired:"Expirée (48 h écoulées)",show_closed:"Afficher les demandes terminées et expirées",d1:"Moins de 1 km",off_t:"Pas de connexion Internet : la carte peut ne pas s’afficher ; vos demandes enregistrées restent disponibles.",on_t:"Connexion Internet rétablie.",lbl_sort:"Tri",sort_new:"Par défaut",sort_price:"Mieux payé d’abord",sort_near:"Plus proches (position requise)",lbl_dist:"Distance",dist_all:"Toute distance",d2:"Moins de 2 km",d5:"Moins de 5 km",d10:"Moins de 10 km",dist_note:"Distances approximatives (de votre position actuelle à la zone de la demande) ; votre position n’est pas enregistrée.",km:"km",share:"Partager",share_fail:"Partage impossible.",copied:"Résumé de la demande copié.",share_hdr:"Demande d’aide via QARIB",lbl_urg:"Degré d’urgence",urg_flexible:"Flexible",urg_today:"Aujourd’hui",urg_urgent:"Urgent",btn_report:"Signaler",report_t:"Signaler un contenu",report_note:"Le signalement est enregistré uniquement sur votre appareil et n’atteint aucun modérateur pour l’instant. Il sera relié à un système de modération avec Firebase.",rs_inappropriate:"Contenu inapproprié",rs_scam:"Arnaque ou paiement suspect",rs_unsafe:"Rencontre jugée dangereuse",rs_other:"Autre raison",btn_send:"Enregistrer le signalement",report_done:"Signalement enregistré sur votre appareil uniquement.",cat_tidy:"Rangement & maison",cat_tidy_f:"Rangement et aide à la maison",cat_other:"Autre",cat_other_f:"Autre (précisez dans la description)",price_note:"C’est vous qui fixez le prix ; l’application ne fixe aucun prix et ne traite aucun paiement. L’accord final se fait entre vous et l’autre personne. Saisissez 0 si l’aide est bénévole.",city_ph:"— ou choisir une ville (approximatif) —",loc_city:"✓ Centre-ville adopté comme zone approximative.",cnt:"Mes demandes publiées",stor:"Base de données",stor_ok:"En ligne (Firebase)",stor_bad:"Hors ligne",zone:"Zone :",zone_approx:"Zone approximative",banner:"Version de test en ligne : les demandes publiées sont visibles par les autres utilisateurs connectés, avec une zone approximative. N’écrivez aucune donnée personnelle. La vérification d’identité et d’âge n’est pas encore active.",gps_btn:"Ma position",search:"Rechercher une demande…",cat_all:"Tous",cat_moving:"Déménagement",cat_repair:"Bricolage",cat_delivery:"Livraison",cat_moving_f:"Déménagement et meubles",cat_repair_f:"Petites réparations et bricolage",cat_delivery_f:"Livraison de courses",nav_map:"Carte",nav_list:"Demandes",nav_chat:"Chat",nav_profile:"Profil",title_list:"Demandes",list_note:"Demandes des utilisateurs connectés, avec zone approximative. Les prix sont fixés par les personnes qui demandent ; l’application ne fixe aucun prix et ne traite aucun paiement. Rencontrez-vous d’abord dans un lieu public, jamais dans un endroit isolé.",demo_tag:"Exemple",empty:"Aucune demande correspondante.",accept:"Ouvrir un chat de test",del:"Supprimer",title_create:"Créer une demande d’aide",privacy:"À la publication, la demande est visible par les autres utilisateurs connectés avec une zone approximative (environ 1 km), sans adresse ni coordonnées exactes. N’écrivez ni adresse exacte ni données personnelles. Les rencontres en personne sont réservées aux adultes vérifiés ; la vérification d’identité n’est pas encore active.",lbl_title:"Titre de la demande",ph_title:"Ex. : déplacer un canapé, ranger une pièce, réparer une porte…",lbl_cat:"Catégorie",lbl_price:"Prix proposé (DH)",lbl_time:"Horaire",ph_time:"Maintenant / aujourd’hui",lbl_desc:"Description",ph_desc:"Expliquez précisément ce dont vous avez besoin…",lbl_loc:"Lieu de la demande (approximatif)",btn_gps:"Ma position",btn_pick:"Choisir sur la carte",loc_none:"Aucun lieu choisi pour l’instant.",loc_ok:"✓ Zone approximative confirmée (environ 1 km).",btn_undo:"Annuler le lieu choisi",adult:"Je confirme être majeur(e) (18 ans ou plus).",btn_submit:"Publier la demande",e_title:"Saisissez un titre.",e_price:"Saisissez un prix valide.",e_loc:"Choisissez d’abord une zone approximative et confirmez-la.",e_adult:"Vous devez confirmer être majeur(e).",e_save:"Enregistrement impossible. Vérifiez la connexion et réessayez.",pick_hint:"Touchez la carte pour choisir une zone approximative.",pick_ready:"Le cercle représente une zone approximative (environ 1 km). Confirmez ou annulez.",btn_confirm:"Confirmer",btn_cancel:"Annuler",gps_fail:"Impossible de déterminer votre position. Vérifiez que le GPS est activé et que le navigateur y est autorisé, ou choisissez une ville ou touchez la carte.",gps_none:"Ce navigateur ne prend pas en charge la géolocalisation. Choisissez une ville dans la liste.",you_here:"Votre position exacte : visible par vous seul sur cet appareil, jamais publiée ni enregistrée.",nomap:"Impossible de charger la carte. Vérifiez votre connexion Internet.",chat_t:"Chat de test (simulation)",chat_s:"Aucune personne réelle ici. Les messages ne quittent pas votre téléphone.",chat_about:"Concerne :",chat_ph:"Écrivez un message de test…",chat_re:"Réponse automatique de test. Aucun utilisateur réel dans cette version.",send:"Envoyer",prof_name:"Utilisateur de test",prof_unv:"Non vérifié : vérification d’identité inactive",prof_rating:"Évaluation",prof_none:"Aucune pour l’instant",prof_phone:"Téléphone",prof_unreg:"Non renseigné",prof_note:"Les demandes sont enregistrées dans une base de données en ligne (Firebase) et visibles par les utilisateurs connectés. Votre numéro sert uniquement à la connexion et n’apparaît pas dans les demandes. Vous pouvez supprimer vos demandes à tout moment.",btn_clear:"Supprimer toutes mes demandes",clear_q:"Supprimer définitivement toutes vos demandes publiées ?"}
 };
 var DEMO=[
 {id:-1,urgency:"urgent",category:"moving",price:100,lat:30.35,lng:-9.54,title:{ar:"مساعدة في نقل أريكة كبيرة",fr:"Aide pour déplacer un grand canapé"},time:{ar:"الآن",fr:"Maintenant"},desc:{ar:"مثال توضيحي: أحتاج شخصًا بالغًا لنقل أريكة للطابق الثاني.",fr:"Exemple : j’ai besoin d’un adulte pour monter un canapé au 2e étage."}},
@@ -212,6 +256,7 @@ var DEMO=[
 {id:-3,urgency:"urgent",category:"delivery",price:50,lat:30.34,lng:-9.55,title:{ar:"شراء وتوصيل طلبات",fr:"Courses et livraison"},time:{ar:"خلال ساعة",fr:"Dans l’heure"},desc:{ar:"مثال توضيحي: شراء أغراض بسيطة وتوصيلها للمنزل.",fr:"Exemple : acheter quelques articles et les livrer à domicile."}},
 {id:-4,urgency:"flexible",category:"tidy",price:80,lat:30.35,lng:-9.56,title:{ar:"ترتيب غرفة وتنظيم خزانة",fr:"Ranger une chambre et organiser une armoire"},time:{ar:"نهاية الأسبوع",fr:"Ce week-end"},desc:{ar:"مثال توضيحي: مساعدة في ترتيب غرفة وتنظيم الخزانة، والمقابل يحدده صاحب الطلب.",fr:"Exemple : aide pour ranger une chambre et organiser une armoire ; le prix est fixé par la personne qui demande."}}
 ];
+DEMO=[];
 var CITIES=[{k:"agadir",ar:"أكادير",fr:"Agadir",lat:30.43,lng:-9.60},{k:"casablanca",ar:"الدار البيضاء",fr:"Casablanca",lat:33.57,lng:-7.59},{k:"rabat",ar:"الرباط",fr:"Rabat",lat:34.02,lng:-6.84},{k:"marrakech",ar:"مراكش",fr:"Marrakech",lat:31.63,lng:-7.98},{k:"fes",ar:"فاس",fr:"Fès",lat:34.03,lng:-5.00},{k:"tanger",ar:"طنجة",fr:"Tanger",lat:35.76,lng:-5.83},{k:"meknes",ar:"مكناس",fr:"Meknès",lat:33.89,lng:-5.55},{k:"oujda",ar:"وجدة",fr:"Oujda",lat:34.69,lng:-1.91},{k:"tetouan",ar:"تطوان",fr:"Tétouan",lat:35.58,lng:-5.37},{k:"kenitra",ar:"القنيطرة",fr:"Kénitra",lat:34.26,lng:-6.58}];
 var ZK=CITIES.map(function(c){return c.k});
 var UR=["flexible","today","urgent"],RK="qarib_reports",EXP=48*3600*1000;
@@ -229,14 +274,13 @@ function h(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)
 function pt(p){return p==null?"—":p+" DH"}
 /* Sanitize anything read from storage (also coarsens old precise coordinates, drops old demo rows) */
 function clean(r){
-  if(!r||typeof r!=="object"||!(+r.id>=10))return null;
-  var la=+r.lat,ln=+r.lng,p=parseFloat(r.price);
+  if(!r||typeof r!=="object"||typeof r.id!=="string")return null;
+  var la=+r.lat,ln=+r.lng,p=r.price==null?NaN:+r.price;
   if(!isFinite(la)||!isFinite(ln)||Math.abs(la)>90||Math.abs(ln)>180)return null;
-  return{id:+r.id,title:String(r.title||"").slice(0,80),category:CATS.indexOf(r.category)>-1?r.category:(OLD[r.category]||"moving"),price:(isFinite(p)&&p>=0&&p<=1000000)?p:null,time:String(r.time||"").slice(0,40),desc:String(r.desc||"").slice(0,500),lat:snap(la),lng:snap(ln),zone:ZK.indexOf(r.zone)>-1?r.zone:"",urgency:UR.indexOf(r.urgency)>-1?r.urgency:"",done:!!r.done,ts:+r.ts>0?+r.ts:+r.id};
+  return{id:r.id,ownerId:String(r.ownerId||""),title:String(r.title||"").slice(0,80),category:CATS.indexOf(r.category)>-1?r.category:"other",price:(isFinite(p)&&p>=0&&p<=1000000)?p:null,time:String(r.time||"").slice(0,40),desc:String(r.desc||"").slice(0,500),lat:snap(la),lng:snap(ln),zone:ZK.indexOf(r.zone)>-1?r.zone:"",urgency:UR.indexOf(r.urgency)>-1?r.urgency:"",done:!!r.done,ts:+r.ts>0?+r.ts:0};
 }
-try{var raw=JSON.parse(localStorage.getItem(KEY)||"[]");reqs=Array.isArray(raw)?raw.map(clean).filter(Boolean):[]}catch(e){reqs=[]}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(reqs));return true}catch(e){return false}}
-save();
+reqs=[];
+function save(){return true}
 
 function list(){
   var a=DEMO.map(function(d){return{id:d.id,demo:1,category:d.category,price:d.price,lat:d.lat,lng:d.lng,urgency:d.urgency,title:d.title[lang],time:d.time[lang],desc:d.desc[lang]}}).concat(reqs);
@@ -252,9 +296,8 @@ function pop(r){
   var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};d.appendChild(b);return d;
 }
 function stat(){
-  var ok=true;
-  try{localStorage.setItem("__q","1");localStorage.removeItem("__q")}catch(e){ok=false}
-  $("cnt-v").textContent=String(reqs.length);$("stor-v").textContent=tr(ok?"stor_ok":"stor_bad");
+  var n=0;reqs.forEach(function(r){if(mine(r))n++});
+  $("cnt-v").textContent=String(n);$("stor-v").textContent=tr(navigator.onLine===false?"stor_bad":"stor_ok");
 }
 function cityOpts(){
   var sel=$("f-city");while(sel.options.length>1)sel.remove(1);
@@ -279,8 +322,8 @@ function render(){
     var rt=h("div","rt");rt.appendChild(h("span","pr",pt(r.price)));
     var b=h("button","btn sm",tr("accept"));b.type="button";b.onclick=function(){openChat(r.title)};rt.appendChild(b);
     var rp=h("button","btn sm sec",tr("btn_report"));rp.type="button";rp.onclick=function(){openReport(r.id)};rt.appendChild(rp);
-    if(!r.demo){var sh=h("button","btn sm sec",tr("share"));sh.type="button";sh.onclick=function(){shareReq(r)};rt.appendChild(sh);var cp=h("button","btn sm sec",tr("copy"));cp.type="button";cp.onclick=function(){copyReq(r)};rt.appendChild(cp);var st=h("button","btn sm sec",tr(s0==="open"?"mark_done":"reopen"));st.type="button";st.onclick=function(){toggleDone(r.id)};rt.appendChild(st)}
-    if(!r.demo){var d=h("button","btn sm sec",tr("del"));d.type="button";d.onclick=function(){reqs=reqs.filter(function(x){return x.id!==r.id});save();render()};rt.appendChild(d)}
+    if(!r.demo){var sh=h("button","btn sm sec",tr("share"));sh.type="button";sh.onclick=function(){shareReq(r)};rt.appendChild(sh);var cp=h("button","btn sm sec",tr("copy"));cp.type="button";cp.onclick=function(){copyReq(r)};rt.appendChild(cp);if(mine(r)){var st=h("button","btn sm sec",tr(s0==="open"?"mark_done":"reopen"));st.type="button";st.onclick=function(){toggleDone(r.id)};rt.appendChild(st)}}
+    if(mine(r)){var d=h("button","btn sm sec",tr("del"));d.type="button";d.onclick=function(){delReq(r.id)};rt.appendChild(d)}
     c.appendChild(rt);box.appendChild(c);
   });
   if(layer){
@@ -359,10 +402,11 @@ $("form").onsubmit=function(e){
   if($("f-price").value===""||!isFinite(price)||price<0||price>1000000){er.textContent=tr("e_price");return}
   if(!loc){er.textContent=tr("e_loc");return}
   if(!$("adult").checked){er.textContent=tr("e_adult");return}
-  var cv=$("f-cat").value;
-  reqs.unshift({id:Date.now(),title:title.slice(0,80),category:CATS.indexOf(cv)>-1?cv:"moving",price:price,time:$("f-time").value.trim().slice(0,40),desc:$("f-desc").value.trim().slice(0,500),lat:loc.lat,lng:loc.lng,zone:loc.zone||"",urgency:UR.indexOf($("f-urg").value)>-1?$("f-urg").value:"flexible",done:false,ts:Date.now()});
-  if(!save()){reqs.shift();er.textContent=tr("e_save");return}
-  $("form").reset();loc=null;locUi();render();switchTab("list");
+  if(!uid)return;
+  var cv=$("f-cat").value,btn=$("form").querySelector('button[type="submit"]');
+  var data={ownerId:uid,title:title.slice(0,80),category:CATS.indexOf(cv)>-1?cv:"other",price:price,time:$("f-time").value.trim().slice(0,40),desc:$("f-desc").value.trim().slice(0,500),zone:loc.zone||"",lat:loc.lat,lng:loc.lng,urgency:UR.indexOf($("f-urg").value)>-1?$("f-urg").value:"flexible",done:false,ts:Date.now()};
+  btn.disabled=true;
+  addDoc(collection(db,"requests"),data).then(function(){$("form").reset();loc=null;locUi();switchTab("list")}).catch(function(){er.textContent=tr("e_save")}).then(function(){btn.disabled=false});
 };
 
 /* Chat: local simulation only */
@@ -375,7 +419,11 @@ function sendMsg(){
 $("send").onclick=sendMsg;
 $("chat-in").onkeydown=function(e){if(e.key==="Enter")sendMsg()};
 
-$("clear").onclick=function(){if(confirm(tr("clear_q"))){reqs=[];try{localStorage.removeItem(KEY);localStorage.removeItem(RK)}catch(e){}render()}};
+$("clear").onclick=function(){
+  if(!confirm(tr("clear_q")))return;
+  try{localStorage.removeItem(RK)}catch(e){}
+  Promise.all(reqs.filter(mine).map(function(r){return deleteDoc(doc(db,"requests",r.id))})).catch(function(){alert(tr("e_save"))});
+};
 $("search").oninput=function(){q=this.value.trim().toLowerCase();render()};
 document.querySelectorAll("[data-cat]").forEach(function(b){b.onclick=function(){
   cat=b.getAttribute("data-cat");
@@ -412,9 +460,12 @@ function copyReq(r){
 }
 /* Mark as helped / reactivate (an expired or finished request returns to the map with a fresh 48 h clock) */
 function toggleDone(id){
-  reqs.forEach(function(x){if(x.id===id){if(state(x)==="open")x.done=true;else{x.done=false;x.ts=Date.now()}}});
-  save();render();
+  var x=null;reqs.forEach(function(r){if(r.id===id)x=r});
+  if(!x||!mine(x))return;
+  var patch=state(x)==="open"?{done:true}:{done:false,ts:Date.now()};
+  updateDoc(doc(db,"requests",id),patch).catch(function(){alert(tr("e_save"))});
 }
+function delReq(id){deleteDoc(doc(db,"requests",id)).catch(function(){alert(tr("e_save"))})}
 $("s-closed").onchange=function(){showClosed=this.checked;render()};
 
 /* Report: saved locally only (no moderator receives it yet) */
@@ -438,12 +489,57 @@ function net(){
 }
 window.addEventListener("offline",net);window.addEventListener("online",net);
 
+/* ---- Accounts (phone) and shared requests (Firestore) ---- */
+var uid=null,user=null,unsub=null,conf=null,verifier=null;
+function mine(r){return !!uid&&r.ownerId===uid}
+function maskPhone(p){return p.length>6?p.slice(0,3)+"•".repeat(p.length-5)+p.slice(-2):p}
+function lgErr(k){$("lg-err").textContent=k?tr(k):""}
+function subscribe(){
+  if(unsub)unsub();
+  unsub=onSnapshot(query(collection(db,"requests"),orderBy("ts","desc"),limit(200)),function(s){
+    var a=[];s.forEach(function(d){var o=clean(Object.assign({},d.data(),{id:d.id}));if(o)a.push(o)});
+    reqs=a;render();
+  },function(){alert(tr("e_load"))});
+}
+$("lg-lang").onclick=function(){setLang(lang==="ar"?"fr":"ar")};
+$("lg-send").onclick=function(){
+  var p=$("lg-phone").value.replace(/[\s\-()]/g,""),b=$("lg-send");
+  lgErr("");
+  if(!/^\+\d{8,15}$/.test(p)){lgErr("lg_e_phone");return}
+  if(!$("lg-adult").checked){lgErr("lg_e_adult");return}
+  b.disabled=true;b.textContent=tr("sending");
+  try{$("rc").textContent="";verifier=new RecaptchaVerifier(auth,"rc",{size:"invisible"})}catch(e){}
+  signInWithPhoneNumber(auth,p,verifier)
+    .then(function(c){conf=c;$("lg-shown").textContent=p;$("lg1").hidden=true;$("lg2").hidden=false})
+    .catch(function(e){lgErr(e&&e.code==="auth/too-many-requests"?"lg_e_many":"lg_e_send");try{verifier.clear()}catch(x){}})
+    .then(function(){b.disabled=false;b.textContent=tr("lg_send")});
+};
+$("lg-verify").onclick=function(){
+  var c=$("lg-code").value.trim(),b=$("lg-verify");
+  lgErr("");
+  if(!/^\d{6}$/.test(c)){lgErr("lg_e_code");return}
+  if(!conf)return;
+  b.disabled=true;
+  conf.confirm(c).catch(function(){lgErr("lg_e_wrong")}).then(function(){b.disabled=false});
+};
+$("lg-back").onclick=function(){$("lg2").hidden=true;$("lg1").hidden=false;$("lg-code").value="";lgErr("")};
+$("logout").onclick=function(){signOut(auth)};
+onAuthStateChanged(auth,function(u){
+  user=u;uid=u?u.uid:null;$("lg-load").hidden=true;
+  if(u){$("login").hidden=true;$("ph-v").textContent=maskPhone(u.phoneNumber||"");subscribe()}
+  else{
+    if(unsub){unsub();unsub=null}
+    reqs=[];render();$("ph-v").textContent="";
+    $("login").hidden=false;$("lg1").hidden=false;$("lg2").hidden=true;$("lg-code").value="";
+  }
+});
+
 function setLang(l){
   lang=l;try{localStorage.setItem(LK,l)}catch(e){}
   document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";
   document.querySelectorAll("[data-i]").forEach(function(n){n.textContent=T[l][n.getAttribute("data-i")]});
   document.querySelectorAll("[data-p]").forEach(function(n){n.placeholder=T[l][n.getAttribute("data-p")]});
-  $("lang-btn").textContent=l==="ar"?"Français":"العربية";
+  $("lang-btn").textContent=l==="ar"?"Français":"العربية";$("lg-lang").textContent=l==="ar"?"Français":"العربية";
   $("send").setAttribute("aria-label",tr("send"));$("tab-create").setAttribute("aria-label",tr("title_create"));
   if(picking)$("pk-t").textContent=draft?tr("pick_ready"):tr("pick_hint");
   $("err").textContent="";cityOpts();locUi();render();net();distNote();
@@ -452,6 +548,7 @@ $("lang-btn").onclick=function(){setLang(lang==="ar"?"fr":"ar")};
 initMap();
 setLang(lang);
 net();
+window.__qok=true;
 </script>
 </body>
 </html>
