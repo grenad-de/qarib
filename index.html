@@ -508,10 +508,10 @@ $("lg-send").onclick=function(){
   if(!/^\+\d{8,15}$/.test(p)){lgErr("lg_e_phone");return}
   if(!$("lg-adult").checked){lgErr("lg_e_adult");return}
   b.disabled=true;b.textContent=tr("sending");
-  try{$("rc").textContent="";verifier=new RecaptchaVerifier(auth,"rc",{size:"invisible"})}catch(e){}
+  verifier=null;try{$("rc").textContent="";verifier=new RecaptchaVerifier(auth,"rc",{size:"invisible"})}catch(e){console.error(e);lgErr("lg_e_send");$("lg-err").textContent+=" ["+((e&&e.code)||"recaptcha")+"]"}
   signInWithPhoneNumber(auth,p,verifier)
     .then(function(c){conf=c;$("lg-shown").textContent=p;$("lg1").hidden=true;$("lg2").hidden=false})
-    .catch(function(e){lgErr(e&&e.code==="auth/too-many-requests"?"lg_e_many":"lg_e_send");try{verifier.clear()}catch(x){}})
+    .catch(function(e){var c=(e&&e.code)||"unknown";console.error(e);lgErr(c==="auth/too-many-requests"?"lg_e_many":"lg_e_send");$("lg-err").textContent+=" ["+c+"]";try{verifier.clear()}catch(x){}})
     .then(function(){b.disabled=false;b.textContent=tr("lg_send")});
 };
 $("lg-verify").onclick=function(){
